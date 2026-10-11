@@ -1,0 +1,44 @@
+<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>The Last Battle of Hogwarts — Fan Project</title>  <script type="module" crossorigin src="/hogwarts-last-battle/assets/index-nEvl1jWi.js"></script>
+  <link rel="modulepreload" crossorigin href="/hogwarts-last-battle/assets/three-DwRTVkzS.js">
+  <link rel="modulepreload" crossorigin href="/hogwarts-last-battle/assets/content-C3fVSmiy.js">
+  <link rel="modulepreload" crossorigin href="/hogwarts-last-battle/assets/engine-DtKAJtN6.js">
+  <link rel="stylesheet" crossorigin href="/hogwarts-last-battle/assets/index-ySI02rih.css">
+</head><body>
+<canvas id="c"></canvas><div id="speed"></div><div id="flash"></div><div id="fx"></div><div id="banner"></div>
+<div id="lbTop"></div><div id="lbBot"></div><div id="sub"></div><button id="skip" data-t="skip"></button><div id="white"></div><div id="chapterCard"></div><div id="bark"></div><div id="saveToast"></div>
+<div id="hud" class="hidden"><div id="storyObj" class="hidden"></div><div id="exploreHud" class="hidden"></div>
+  <div id="topleft"><div id="cname"></div><div class="bar" id="hpBar"><i class="hp"></i><span></span></div><div class="bar" id="enBar"><i class="en"></i><span></span></div><div class="bar thin" id="stBar"><i class="st"></i><span></span></div><div id="status"></div><div id="allies"></div></div>
+  <div id="objective"></div><div id="boss"><div id="bossName"></div><div class="bbar"><i id="bossBar"></i></div></div>
+  <div id="warHud"><div id="prog"><div id="progFill"></div><div id="progMid"></div></div><div id="progTxt"></div><div id="zones"></div><div id="missions"></div><div id="warStats"></div><canvas id="minimap" width="170" height="300"></canvas><div id="specName"></div></div>
+  <div id="cmd"><h4 data-t="squads"></h4><div id="squadList"></div><h4 data-t="zonesT"></h4><div id="zoneBtns"></div><h4 data-t="orders"></h4><div id="orderBtns"><button data-order="attack">⚔ <span data-t="oAttack"></span></button><button data-order="defend">🛡 <span data-t="oDefend"></span></button><button data-order="retreat">↩ <span data-t="oRetreat"></span></button><button data-order="protect">♥ <span data-t="oProtect"></span></button></div><small data-t="cmdHelp"></small></div>
+  <div id="spells"></div><div id="skills"></div><div id="combo"></div><div id="clashUI"><div id="clashHelp"></div><div class="ctrack"><div class="czone"></div><div id="clashMarker"></div></div><div class="ptrack"><div id="clashBar"></div></div><div id="clashTime"></div></div><div id="feed"></div><div id="cross">✦</div><div id="help"></div>
+  <div id="touch"><div id="stick"><div class="knob"></div></div>
+    <button id="tFire">✨</button><button id="tShield">🛡</button><button id="tDodge">💨</button><button id="tNext">⟳</button><button id="tSwitch">👥</button><button id="tSprint">🏃</button><button id="tPause">⏸</button><button id="tS1">1</button><button id="tS2">2</button><button id="tS3">3</button><button id="tUlt">R</button></div>
+  <div id="pauseOv" class="overlay"><div class="panel"><h2 data-t="paused"></h2><button id="btnResume" data-t="resume"></button><div id="storyPause"><button data-slot="0">💾 <span data-t="saveSlot"></span> 1</button><button data-slot="1">💾 <span data-t="saveSlot"></span> 2</button><button data-slot="2">💾 <span data-t="saveSlot"></span> 3</button><button id="btnCheckpoint" data-t="retryCp"></button></div><button id="btnPauseMenu" data-t="menu"></button></div></div>
+</div>
+<div id="menu" class="overlay"><div class="panel">
+  <h1 id="bigTitle">HARRY POTTER</h1><div class="sub">~ ANIME BATTLE EDITION ~</div><h2 data-t="title"></h2>
+  <button id="btnSetup" data-t="setupBtn"></button><button id="btnPlay" data-t="freeBattle"></button>
+  <button id="btnStory" data-t="story"></button>
+  <button id="btnWhatIf" data-t="whatif"></button>
+  <button id="btnWar" data-t="warBtn"></button>
+  <button id="btnCommander" data-t="commander"></button>
+  <button id="btnSpectator" data-t="spectator"></button>
+  <button id="btnExplore" data-t="exploreBtn"></button><div class="mrow"><button id="btnGallery" data-t="galleryBtn"></button><button id="btnSpells" data-t="spellsBtn"></button><button id="btnProgress" data-t="progressBtn"></button><button id="btnReplayLast" data-t="replayBtn"></button></div><button id="btnSettings" data-t="settings"></button><button id="btnLang" data-t="lang"></button>
+  <p class="ctl" data-t="controls"></p><p class="disc" data-t="disclaimer"></p></div></div>
+<div id="select" class="overlay hidden"><div class="panel wide"><h2 data-t="choose"></h2><h3 data-t="hogwarts"></h3><div class="grid" id="gridH"></div><h3 data-t="deathside"></h3><div class="grid" id="gridD"></div><button id="btnBack2" data-t="back"></button></div></div>
+<div id="settings" class="overlay hidden"><div class="panel"><h2 data-t="settings"></h2>
+  <label><span data-t="volume"></span><input id="sVol" type="range" min="0" max="1" step="0.05"></label>
+  <label><span data-t="sens"></span><input id="sSens" type="range" min="0.3" max="2.5" step="0.1"></label>
+  <label><span data-t="gfxT"></span><select id="sGfx"><option value="low">Low</option><option value="med">Medium</option><option value="high">High</option><option value="ultra">Ultra</option></select></label>
+  <label class="chk"><input id="sAdapt" type="checkbox"> <span data-t="adaptT"></span></label><label class="chk"><input id="sAssist" type="checkbox"> <span data-t="assistT"></span></label>
+  <label><span data-t="musicT"></span><input id="sMusic" type="range" min="0" max="1" step="0.05"></label><label class="chk"><input id="sFantasy" type="checkbox"> <span data-t="fantasyT"></span></label>
+  <label><span data-t="difficulty"></span><select id="sDiff"><option value="easy">Easy</option><option value="normal">Normal</option><option value="hard">Hard</option></select></label>
+  <button id="btnBack" data-t="back"></button></div></div>
+<div id="story" class="overlay hidden"><div class="panel wide"><h2 data-t="story"></h2><p id="storyProg"></p>
+  <button id="btnContinue" data-t="continue"></button><div class="grid" id="chapters"></div>
+  <h3 data-t="slots"></h3><div class="grid" id="slots"></div><button id="btnNewCamp" data-t="newCamp"></button><button id="btnBack3" data-t="back"></button></div></div>
+<div id="storyEnd" class="overlay hidden"><div class="panel"><h2 id="seTitle"></h2><p id="seText"></p><button id="btnNextCh" data-t="nextCh"></button><button id="btnRetryCp" data-t="retryCp"></button><button id="btnRestartCh" data-t="restartCh"></button><button id="btnChSel" data-t="chSelect"></button></div></div>
+<div id="screen" class="overlay hidden"><div class="panel wide" id="screenBody"></div></div>
+<div id="end" class="overlay hidden"><div class="panel wide"><h2 id="endTitle"></h2><p id="endStats"></p><p id="endMvp"></p><div id="endTable"></div><div id="endTimeline"></div><button id="btnReplay" data-t="replayBtn"></button><button id="btnRestart" data-t="restart"></button><button id="btnMenu" data-t="menu"></button></div></div></body></html>
