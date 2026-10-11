@@ -1,0 +1,10 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch({ args: ['--use-angle=swiftshader','--enable-unsafe-swiftshader'] });
+const p = await b.newPage({ viewport: { width: 1280, height: 720 } }); await p.goto('http://localhost:4175/'); await p.waitForTimeout(600);
+await p.click('#btnGallery'); await p.waitForTimeout(500); await p.click('[data-gc="ginny"]').catch(()=>{}); await p.click('[data-fac="order"]'); await p.waitForTimeout(400); await p.click('[data-gc="kingsley"]'); await p.waitForTimeout(500); await p.screenshot({ path: 'gallery5.png' }); await p.click('#gBack');
+await p.evaluate(() => __startCustom('ginny', 'courtyard', { hogwarts: ['ginny', 'fred', 'george', 'molly', 'hagrid', 'kingsley'], death: ['bellatrix', 'lucius', 'greyback', 'yaxley', 'macnair', 'draco'], army: 200, victory: 'score', record: true }));
+await p.waitForTimeout(800); await p.evaluate(() => { const g = __game(); g.ctrl.playerControlled = false; for (let i = 0; i < 30 * 25; i++) g.step(1 / 30); g.ctrl.playerControlled = true; });
+await p.waitForTimeout(1200); await p.screenshot({ path: 'shot5.png' });
+await p.evaluate(() => __explore('library')); await p.waitForTimeout(1200); await p.screenshot({ path: 'explore_library.png' });
+await p.evaluate(() => __explore('hagrid')); await p.waitForTimeout(1200); await p.screenshot({ path: 'explore_hagrid.png' });
+await b.close();

@@ -1,0 +1,41 @@
+/** Distinct signature #1 + ultimate mechanics for the 29 Phase-5 characters (unique mechanic and/or visual each). */
+import { SKILLS, Effect } from '../combat/skills';
+type U = { s1: Effect[]; r1?: number; ult: Effect[]; ru?: number; s2?: Effect[] };
+const Z = (at: 'self' | 'target', radius: number, dur: number, dps: number, slow: number, color: number, heal?: number): Effect => ({ kind: 'zone', at, radius, dur, dps, slow, color, heal });
+const M = (count: number, radius: number, damage: number, color: number, spread = 5, delay = 0.6): Effect => ({ kind: 'meteor', count, radius, damage, color, spread, delay });
+const C = (jumps: number, damage: number, color: number, range = 9): Effect => ({ kind: 'chain', jumps, damage, range, color });
+const H = (radius: number, dur: number, power: number, defense: number, speed: number, color: number): Effect => ({ kind: 'haste', radius, dur, power, defense, speed, color });
+export const UNIQUE: Record<string, U> = {
+  ginny: { s1: [{ kind: 'volley', spell: 'avis', count: 6, spread: 0.6, delay: 0.05, color: 0x9ab04a }], ult: [H(12, 6, 1.25, 1.1, 1.25, 0xff7030), { kind: 'volley', spell: 'confringo', count: 5, spread: 0.4, dmgMul: 1.4, delay: 0.06, color: 0xff7030 }, { kind: 'mark', dur: 6, amp: 1.3 }] },
+  george: { s1: [M(3, 2.5, 18, 0x5af0ff, 4, 0.4)], ult: [Z('target', 6, 6, 18, 0.5, 0xff5cf0), { kind: 'volley', spell: 'firework', count: 8, spread: 0.7, delay: 0.04, color: 0x5af0ff }] },
+  molly: { s1: [{ kind: 'barrier', dur: 3, radius: 9 }, { kind: 'cleanse', radius: 9, heal: 15 }], r1: 0, ult: [C(6, 34, 0xff8a5a, 10), { kind: 'buff', dur: 6, power: 1.35, defense: 1.2, speed: 1.15, color: 0xff8a5a }] },
+  arthur: { s1: [{ kind: 'pull', radius: 8, force: 12, color: 0x80c0ff }, { kind: 'nova', radius: 3, damage: 8, stun: 1.0, knock: 2, color: 0x80c0ff }], r1: 16, ult: [{ kind: 'dash', dist: 18, damage: 42, knock: 18, color: 0x40d0c0 }, { kind: 'barrier', dur: 3, radius: 8 }] },
+  kingsley: { s1: [C(3, 22, 0xb070ff)], ult: [H(16, 7, 1.25, 1.3, 1.1, 0xb070ff), { kind: 'barrier', dur: 4, radius: 14 }] },
+  lupin: { s1: [{ kind: 'mark', dur: 5, amp: 1.35 }, { kind: 'volley', spell: 'stupefy', count: 3, spread: 0.1, delay: 0.1, color: 0xc0e0ff }], ult: [{ kind: 'buff', dur: 8, power: 1.4, defense: 1.2, speed: 1.4, color: 0xd8e0ff }, { kind: 'nova', radius: 7, damage: 24, stun: 0.8, knock: 10, color: 0xd8e0ff }, { kind: 'drain', damage: 30, ratio: 1, color: 0xd8e0ff }] },
+  tonks: { s1: [{ kind: 'blink', dist: 9, color: 0xff50c0 }, { kind: 'volley', spell: 'stupefy', count: 2, spread: 0.2, color: 0xff50c0 }], ult: [C(5, 26, 0xff50c0), { kind: 'silence', radius: 7, dur: 2.5, color: 0xff50c0 }] },
+  hagrid: { s1: [{ kind: 'nova', radius: 6, damage: 20, stun: 1.0, knock: 16, color: 0xc08a4a }, Z('self', 6, 3, 0, 1, 0x8a6a3a)], r1: 6, ult: [{ kind: 'volley', spell: 'avis', count: 9, spread: 0.9, dmgMul: 2.2, delay: 0.05, color: 0xc08a4a }, { kind: 'buff', dur: 7, power: 1.2, defense: 1.6, speed: 1.1, color: 0xc08a4a }] },
+  flitwick: { s1: [{ kind: 'volley', spell: 'lumos', count: 7, spread: 0.9, delay: 0.04, color: 0x60a0ff }], ult: [M(8, 3, 26, 0x60a0ff, 9, 0.5), { kind: 'barrier', dur: 3, radius: 10 }] },
+  slughorn: { s1: [H(12, 6, 1.18, 1.1, 1.2, 0xffe060)], r1: 0, ult: [Z('self', 9, 6, 0, 0, 0xffe060, 22), { kind: 'cleanse', radius: 12, heal: 25 }] },
+  sprout: { s1: [Z('self', 7, 4, 0, 0, 0x80e040, 18)], r1: 0, ult: [Z('target', 7, 6, 14, 1, 0x3a8a2a), { kind: 'pull', radius: 9, force: 10, color: 0x3a8a2a }] },
+  aberforth: { s1: [{ kind: 'volley', spell: 'patronus', count: 2, spread: 0.3, color: 0xe8f0ff }], ult: [C(4, 30, 0xd0e0ff), { kind: 'nova', radius: 7, damage: 26, stun: 1.0, knock: 12, color: 0xd0e0ff }] },
+  cho: { s1: [{ kind: 'blink', dist: 8, color: 0x6ab0ff }, { kind: 'mark', dur: 5, amp: 1.3 }, { kind: 'volley', spell: 'stupefy', count: 1, spread: 0, dmgMul: 1.5 }], ult: [{ kind: 'volley', spell: 'patronus', count: 3, spread: 0.4, dmgMul: 1.3, color: 0xc0e0ff }, H(10, 6, 1.15, 1.1, 1.35, 0x6ab0ff)] },
+  seamus: { s1: [M(1, 5, 34, 0xff7020, 0, 0.45)], ult: [M(6, 4.5, 30, 0xff7020, 10, 0.5), { kind: 'buff', dur: 4, power: 1.2, defense: 1, speed: 1.2, color: 0xff7020 }] },
+  lucius: { s1: [{ kind: 'drain', damage: 22, ratio: 0.8, color: 0x40d090 }], ult: [{ kind: 'silence', radius: 9, dur: 3, color: 0x40d090 }, { kind: 'buff', dur: 6, power: 1.3, defense: 1.2, speed: 1.1, color: 0x40d090 }] },
+  narcissa: { s1: [{ kind: 'cleanse', radius: 10, heal: 20 }, { kind: 'barrier', dur: 2.5, radius: 10 }], r1: 0, ult: [H(14, 5, 1.1, 2.0, 1.1, 0xa0c0ff), { kind: 'heal', radius: 14, amount: 45 }] },
+  draco: { s1: [{ kind: 'volley', spell: 'sectum', count: 3, spread: 0.18, delay: 0.08, color: 0x40ff90 }], ult: [C(4, 28, 0x40ff90), { kind: 'buff', dur: 6, power: 1.3, defense: 1.15, speed: 1.2, color: 0x40ff90 }] },
+  yaxley: { s1: [{ kind: 'mark', dur: 5, amp: 1.25 }, { kind: 'silence', radius: 3, dur: 1.2, color: 0xd0a040 }], ult: [{ kind: 'silence', radius: 7, dur: 1.8, color: 0xd0a040 }, { kind: 'mark', dur: 5, amp: 1.2, radius: 9 }] },
+  rookwood: { s1: [{ kind: 'volley', spell: 'bombarda', count: 1, spread: 0, dmgMul: 2.2, color: 0xffd060 }], ult: [M(10, 4, 28, 0xd8c08a, 14, 0.6)] },
+  macnair: { s1: [{ kind: 'execute', damage: 26, threshold: 0.35, color: 0xc04020 }], r1: 4, ult: [M(1, 6, 64, 0xc04020, 0, 0.8), { kind: 'buff', dur: 5, power: 1.25, defense: 1.3, speed: 1, color: 0xc04020 }] },
+  alecto: { s1: [{ kind: 'silence', radius: 3, dur: 2, color: 0xff2080 }, { kind: 'volley', spell: 'crucio', count: 1, spread: 0, dmgMul: 1.3 }], ult: [Z('target', 5, 5, 12, 0.4, 0xff2080), { kind: 'mark', dur: 4, amp: 1.2, radius: 8 }] },
+  snape: { s1: [{ kind: 'volley', spell: 'sectum', count: 3, spread: 0.1, dmgMul: 1.35, delay: 0.07, color: 0xd8d8ff }, { kind: 'mark', dur: 4, amp: 1.25 }], ult: [{ kind: 'blink', dist: 7, color: 0x101018 }, { kind: 'drain', damage: 40, ratio: 0.8, color: 0xd8d8ff }, { kind: 'volley', spell: 'patronus', count: 2, spread: 0.3, color: 0xe0f0ff }] },
+  dumbledore: { s1: [{ kind: 'barrier', dur: 4, radius: 12 }, { kind: 'cleanse', radius: 12, heal: 20 }], r1: 0, s2: [{ kind: 'blink', dist: 8, color: 0xff6a20 }, { kind: 'nova', radius: 6, damage: 26, stun: 1, knock: 12, color: 0xff6a20 }],
+    ult: [Z('self', 10, 6, 26, 0.6, 0xff8a30), Z('self', 10, 6, 0, 0, 0xffe8a0, 18), M(5, 3, 28, 0xffe8a0, 10, 0.5)] },
+  grindelwald: { s1: [Z('self', 5, 3, 12, 0, 0x40a0ff)], r1: 5, ult: [Z('target', 7, 5, 14, 0.3, 0x2070ff), C(4, 18, 0x40a0ff, 9)] },
+  sirius: { s1: [{ kind: 'volley', spell: 'stupefy', count: 4, spread: 0.2, delay: 0.06, color: 0xff3050 }, { kind: 'buff', dur: 3, power: 1.1, defense: 1, speed: 1.4, color: 0xff3050 }], ult: [C(4, 30, 0xff3050), { kind: 'cleanse', radius: 12, heal: 25 }] },
+  james: { s1: [{ kind: 'dash', dist: 10, damage: 28, knock: 14, color: 0xffd34d }, { kind: 'barrier', dur: 1.5, radius: 3 }], r1: 10, ult: [{ kind: 'volley', spell: 'patronus', count: 4, spread: 0.5, dmgMul: 1.4, color: 0xffe8a0 }, { kind: 'barrier', dur: 3, radius: 10 }] },
+  lily: { s1: [{ kind: 'heal', radius: 10, amount: 28 }, { kind: 'cleanse', radius: 10, heal: 0 }], r1: 0, ult: [{ kind: 'barrier', dur: 4, radius: 16 }, { kind: 'heal', radius: 16, amount: 60 }, { kind: 'nova', radius: 9, damage: 22, stun: 1.6, knock: 6, color: 0xa0ffc0 }] },
+  moody: { s1: [{ kind: 'mark', dur: 6, amp: 1.25, radius: 16 }, { kind: 'volley', spell: 'stupefy', count: 2, spread: 0.1 }], ult: [C(6, 30, 0x7ad0ff), { kind: 'silence', radius: 9, dur: 2.5, color: 0x7ad0ff }] },
+  riddle: { s1: [{ kind: 'silence', radius: 3.5, dur: 1.2, color: 0x30ff60 }, { kind: 'mark', dur: 4, amp: 1.2 }, { kind: 'volley', spell: 'sectum', count: 2, spread: 0.1, color: 0x30ff60 }], ult: [Z('target', 7, 5, 14, 0.5, 0x20a040), { kind: 'pull', radius: 10, force: 12, color: 0x30ff60 }] },
+};
+export function applyUnique() { for (const [id, u] of Object.entries(UNIQUE)) { const k = SKILLS[id]; if (!k) continue; k.sigs[0] = { ...k.sigs[0], effects: u.s1, range: u.r1 ?? k.sigs[0].range, support: u.r1 === 0 ? true : k.sigs[0].support };
+  if (u.s2) k.sigs[1] = { ...k.sigs[1], effects: u.s2 }; k.ult = { ...k.ult, effects: u.ult, range: u.ru ?? k.ult.range }; } }

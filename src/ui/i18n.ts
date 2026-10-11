@@ -1,0 +1,37 @@
+const T = {
+  title: { en: 'The Last Battle of Hogwarts', th: 'ศึกสุดท้ายแห่งฮอกวอตส์' },
+  freeBattle: { en: 'Courtyard Battle (Playable)', th: 'ศึกลานปราสาท (เล่นได้)' },
+  story: { en: 'Story Campaign', th: 'โหมดเนื้อเรื่อง' }, setupBtn: { en: 'Free Battle (custom setup)', th: 'ศึกอิสระ (ตั้งค่าเอง)' }, exploreBtn: { en: 'Explore Hogwarts (map / fast travel)', th: 'สำรวจฮอกวอตส์ (แผนที่ / เดินทางด่วน)' },
+  galleryBtn: { en: 'Gallery', th: 'แกลเลอรี' }, spellsBtn: { en: 'Spells', th: 'คาถา' }, progressBtn: { en: 'Skill Tree', th: 'ผังสกิล' }, replayBtn: { en: 'Replay', th: 'รีเพลย์' },
+  gfxT: { en: 'Graphics preset', th: 'คุณภาพกราฟิก' }, adaptT: { en: 'Adaptive resolution', th: 'ปรับความละเอียดอัตโนมัติ' }, assistT: { en: 'Semi-auto assist (auto aim/cast/shield)', th: 'โหมดช่วยเล่นกึ่งอัตโนมัติ (เล็ง/ร่าย/ป้องกันอัตโนมัติ)' },
+  musicT: { en: 'Music volume', th: 'ระดับเสียงดนตรี' }, fantasyT: { en: 'Original Fantasy names (reloads)', th: 'ชื่อแฟนตาซีต้นฉบับ (โหลดใหม่)' }, skip: { en: 'Skip ⏭', th: 'ข้าม ⏭' }, saveSlot: { en: 'Save slot', th: 'บันทึกช่อง' }, retryCp: { en: 'Retry from checkpoint', th: 'เริ่มใหม่จากจุดเช็คพอยต์' },
+  continue: { en: 'Continue', th: 'เล่นต่อ' }, slots: { en: 'Manual saves', th: 'บันทึกด้วยตนเอง' }, newCamp: { en: 'New campaign (reset progress)', th: 'เริ่มแคมเปญใหม่ (ล้างความคืบหน้า)' }, nextCh: { en: 'Next chapter ▶', th: 'บทถัดไป ▶' },
+  restartCh: { en: 'Restart chapter', th: 'เริ่มบทนี้ใหม่' }, chSelect: { en: 'Chapter select', th: 'เลือกบท' }, chDone: { en: 'Chapter complete!', th: 'ผ่านบทนี้แล้ว!' }, chFail: { en: 'Chapter failed', th: 'ภารกิจล้มเหลว' }, loadSlot: { en: 'Load', th: 'โหลด' }, empty: { en: 'empty', th: 'ว่าง' }, theEnd: { en: 'THE END — Hogwarts is free.', th: 'จบบริบูรณ์ — ฮอกวอตส์เป็นอิสระแล้ว' }, cmdToggle: { en: 'Orders', th: 'คำสั่ง' }, whatif: { en: 'What If? (9 scenarios)', th: 'What If? (9 สถานการณ์)' },
+  commander: { en: 'War Commander', th: 'ผู้บัญชาการสงคราม' }, spectator: { en: 'Spectator', th: 'โหมดชมสงคราม' },
+  soon: { en: 'Coming soon', th: 'เร็ว ๆ นี้' }, settings: { en: 'Settings', th: 'ตั้งค่า' },
+  lang: { en: 'ภาษาไทย', th: 'English' }, volume: { en: 'Volume', th: 'เสียง' }, sens: { en: 'Mouse sensitivity', th: 'ความไวเมาส์' },
+  difficulty: { en: 'Difficulty', th: 'ความยาก' }, back: { en: 'Back', th: 'กลับ' },
+  objective: { en: 'Defeat Voldemort and all Death Eaters', th: 'เอาชนะโวลเดอมอร์และผู้เสพความตายทั้งหมด' },
+  remaining: { en: 'Enemies left', th: 'ศัตรูที่เหลือ' },
+  win: { en: 'VICTORY — Hogwarts stands!', th: 'ชัยชนะ — ฮอกวอตส์ยังยืนหยัด!' },
+  lose: { en: 'DEFEAT — Hogwarts has fallen', th: 'พ่ายแพ้ — ฮอกวอตส์ล่มสลาย' },
+  restart: { en: 'Restart', th: 'เริ่มใหม่' }, menu: { en: 'Main menu', th: 'เมนูหลัก' },
+  controls: { en: 'WASD move · Mouse aim · LMB cast · RMB Protego · Space dodge · Shift sprint · Q/E spell · 1/2/3 skills · R ultimate · Tab switch · Esc pause', th: 'WASD เดิน · เมาส์เล็ง · คลิกซ้ายร่าย · คลิกขวา Protego · Space หลบ · Shift วิ่ง · Q/E เปลี่ยนเวท · 1/2/3 สกิล · R อัลติเมท · Tab สลับตัว · Esc หยุด' },
+  disclaimer: { en: 'Unofficial non-commercial fan project. Not affiliated with Warner Bros. or J.K. Rowling. All visuals/sounds are original procedural primitives.', th: 'โปรเจกต์แฟนเมดที่ไม่เป็นทางการและไม่แสวงหากำไร ไม่เกี่ยวข้องกับ Warner Bros. หรือ J.K. Rowling ภาพและเสียงสร้างขึ้นเองทั้งหมด' },
+  paused: { en: 'Paused — click to resume', th: 'หยุดชั่วคราว — คลิกเพื่อเล่นต่อ' }, resume: { en: 'Resume', th: 'เล่นต่อ' },
+  choose: { en: 'Choose your character', th: 'เลือกตัวละคร' }, hogwarts: { en: 'Hogwarts Defenders', th: 'ฝ่ายผู้ปกป้องฮอกวอตส์' }, deathside: { en: 'Death Eaters', th: 'ฝ่ายผู้เสพความตาย' },
+  combo: { en: 'COMBO', th: 'คอมโบ' }, ult: { en: 'ULT', th: 'อัลติเมท' }, ready: { en: 'READY! [R]', th: 'พร้อม! [R]' },
+  clashHelp: { en: 'SPELL CLASH! Mash Click/Space — press when the marker is in the gold zone for power', th: 'ปะทะเวท! กดคลิก/Space รัว ๆ — กดตอนเข็มอยู่โซนทองจะดันแรงกว่า' },
+  phase: { en: 'Phase', th: 'เฟส' },
+  objectiveDeath: { en: 'Crush the Hogwarts defenders', th: 'บดขยี้ผู้ปกป้องฮอกวอตส์' },
+  warBtn: { en: 'Battle of Hogwarts — Large-Scale War', th: 'สงครามฮอกวอตส์ — สนามรบขนาดใหญ่' },
+  squads: { en: 'Squads', th: 'หน่วยรบ' }, zonesT: { en: 'Target zone', th: 'พื้นที่เป้าหมาย' }, orders: { en: 'Orders', th: 'คำสั่ง' },
+  oAttack: { en: 'Attack', th: 'บุก' }, oDefend: { en: 'Defend', th: 'ป้องกัน' }, oRetreat: { en: 'Retreat', th: 'ถอย' }, oProtect: { en: 'Protect hero', th: 'คุ้มกันฮีโร่' },
+  cmdHelp: { en: 'Pick squad → zone → order. WASD/drag to pan, wheel to zoom. The war keeps going on its own.', th: 'เลือกหน่วย → พื้นที่ → คำสั่ง · WASD/ลากเพื่อเลื่อน · ล้อเมาส์ซูม · สงครามดำเนินต่อเองตลอด' },
+  specHelp: { en: 'Q/E or Tab: switch followed fighter · Space: slow motion', th: 'Q/E หรือ Tab: สลับตัวที่ติดตาม · Space: สโลว์โมชัน' },
+  stunned: { en: 'STUNNED', th: 'มึนงง' }, disarmed: { en: 'DISARMED', th: 'ไม้กายสิทธิ์หลุด' },
+} as const;
+export const I18N = T as Record<string, { en: string; th: string }>;
+export type Key = keyof typeof T; let lang: 'th' | 'en' = 'th';
+export function setLang(l: 'th' | 'en') { lang = l; } export function getLang() { return lang; }
+export function t(k: Key) { return T[k][lang]; }
