@@ -104,10 +104,14 @@ export class Game implements AIWorld {
   npcFoe(e: Entity) { return this.war ? this.war.nearestFoeUnit(e) : null; }
   foesOf(e: Entity) { return this.entities.filter(o => o.alive && o.def.team !== e.def.team); }
   alliesOf(e: Entity) { return this.entities.filter(o => o.alive && o.def.team === e.def.team); }
-  setControlled(e: Entity) { if (this.ctrl) { this.ctrl.playerControlled = false; this.ctrl.shielding = false; } this.ctrl = e; e.playerControlled = !this.opts.auto; this.camYaw = e.yaw + Math.PI; }
+  /** AUTO: AI fully plays the controlled character; control returns instantly when switched off. */
+  auto = false; autoCancel = false; onAuto: (on: boolean) => void = () => {};
+  canAuto() { return this.mode !== 'spectator' && this.mode !== 'commander' && !this.opts.auto && !!this.ctrl; }
+  setAuto(on: boolean) { if (on && !this.canAuto()) return; this.auto = on; if (this.ctrl && !this.opts.auto) { this.ctrl.playerControlled = !on; if (!on) { this.ctrl.shielding = false; this.ctrl.ai.target = null as any; } } this.input.fire = false; this.input.shield = false; this.onAuto(on); }
+  setControlled(e: Entity) { if (this.ctrl) { this.ctrl.playerControlled = false; this.ctrl.shielding = false; } this.ctrl = e; e.playerControlled = !this.opts.auto && !this.auto; this.camYaw = e.yaw + Math.PI; }
   switchCharacter() { const team = this.entities.filter(e => e.def.team === this.playerTeam && e.alive && e.def.playable && !e.clashing); if (team.length < 2) return;
     const i = team.indexOf(this.ctrl); this.setControlled(team[(i + 1) % team.length]); sfx.ui(); this.onEvent('▶ ' + this.ctrl.def.name, '#ffd34d'); }
-  start() { this.last = performance.now(); const loop = (t: number) => { this.raf = requestAnimationFrame(loop); const dt = Math.min(0.05, (t - this.last) / 1000); this.last = t; this.frameDt = (t - (this as any)._lt || 16) / 1000; (this as any)._lt = t; if (this.war) this.war.cap = this.war.scaler.tick(Math.min(0.5, this.frameDt)); this.step(dt); this.adapt(dt); this.render(); }; this.raf = requestAnimationFrame(loop); }
+  start() { this.last = performance.now(); const loop = (t: number) => { this.raf = requestAnimationFrame(loop); const dt = Math.max(0, Math.min(0.05, (t - this.last) / 1000)); this.last = t; this.frameDt = (t - (this as any)._lt || 16) / 1000; (this as any)._lt = t; if (this.war) this.war.cap = this.war.scaler.tick(Math.min(0.5, this.frameDt)); this.step(dt); this.adapt(dt); this.render(); }; this.raf = requestAnimationFrame(loop); }
   /** adaptive resolution: every 2s nudge pixel ratio toward 55-60fps */
   adapt(dt: number) { this.fpsAcc += dt; this.fpsN++; if (this.fpsAcc < 2) return; this.fps = this.fpsN / this.fpsAcc; this.fpsAcc = 0; this.fpsN = 0; if (!this.adaptive) return;
     const old = this.pr; if (this.fps < 45) this.pr = Math.max(0.5, this.pr - 0.15); else if (this.fps > 58) this.pr = Math.min(this.prMax, this.pr + 0.1); if (old !== this.pr) { this.renderer.setPixelRatio(this.pr); this.resize(); } }
@@ -270,10 +274,13 @@ export class Game implements AIWorld {
     const inp = this.input.consume();
     if (inp.pause && (this.state === 'playing' || this.state === 'paused')) { this.state = this.state === 'playing' ? 'paused' : 'playing'; if (this.state === 'paused') document.exitPointerLock?.(); }
     if (this.state === 'paused') return;
-    if (this.slowT > 0) { this.slowT -= rawDt; this.timeScale = 0.3; } else this.timeScale = Math.min(1, this.timeScale + rawDt * 3);
+    if (this.slowT > 0) { this.slowT -= rawDt; this.timeScale = 0.3; } else this.timeScale = Math.max(0.05, Math.min(1, this.timeScale + Math.max(0, rawDt) * 3)); rawDt = Math.max(0, rawDt);
     const dt = rawDt * this.timeScale * (this.specSlow ? 0.3 : 1); this.time += dt;
     if (this.mode === 'spectator') { if (inp.cycle) this.follow += inp.cycle; if (inp.sw) this.follow++; if (inp.dodge) this.specSlow = !this.specSlow; }
     const sens = 0.0025 * this.settings.sensitivity; this.camYaw -= inp.dx * sens; this.camPitch = THREE.MathUtils.clamp(this.camPitch + inp.dy * sens, -0.5, 1.1);
+    if (inp.auto) this.setAuto(!this.auto);
+    if (this.auto && this.autoCancel && this.state === 'playing') { const [ax, ay] = this.input.axis(); if (Math.abs(ax) + Math.abs(ay) > 0.2 || this.input.fire || inp.skill >= 0 || inp.dodge) this.setAuto(false); }
+    if (this.auto && inp.sw && this.state === 'playing') this.switchCharacter();
     const P = this.ctrl.playerControlled && this.state === 'playing';
     if (P) {
       if (inp.sw) this.switchCharacter();

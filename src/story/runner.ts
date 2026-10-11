@@ -44,7 +44,7 @@ export class StoryRunner {
     this.beginObjective(from);
     if (from === 0) this.cine = new Cine(this.g, this.ch.intro, e => this.event(e), () => { this.cine = null; this.titleCard(); const p = this.pending; this.pending = []; if (p.length) setTimeout(() => this.bark(p), 1500); });
     else this.titleCard();
-    this.last = performance.now(); const loop = (t: number) => { this.raf = requestAnimationFrame(loop); const dt = Math.min(0.05, (t - this.last) / 1000); this.last = t; this.update(dt); }; this.raf = requestAnimationFrame(loop);
+    this.last = performance.now(); const loop = (t: number) => { this.raf = requestAnimationFrame(loop); const dt = Math.max(0, Math.min(0.05, (t - this.last) / 1000)); this.last = t; this.update(dt); }; this.raf = requestAnimationFrame(loop);
   }
   stop() { cancelAnimationFrame(this.raf); this.cine = null; this.markers.length = 0; this.item = null; this.tagged = []; this.fireOn = false; document.body.classList.remove('cine'); }
   titleCard() { const b = $('#chapterCard'); b.innerHTML = `<small>${getLang() === 'th' ? 'บทที่' : 'Chapter'} ${this.n}</small>${tr(this.ch.title)}`; b.classList.remove('show'); void b.offsetWidth; b.classList.add('show'); }

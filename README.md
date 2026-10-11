@@ -10,6 +10,12 @@ An original-names build (no franchise names) is published separately: https://ko
 
 ![lineup](lineup.png)
 
+## Controls
+- **Desktop:** WASD move · mouse aim · LMB cast · RMB shield · Space dodge · Q/E switch spell · 1/2/3 skills · R ultimate · Tab switch hero · **T = AUTO** (AI plays your character; press T again to take control).
+- **Mobile:** floating joystick (left), big attack button bottom-right with skills 1/2/3 + ultimate in an arc (radial cooldowns), shield/dodge/spell-switch nearby, AUTO / switch / pause at the top. Settings: button size, opacity, left-handed layout, "input cancels AUTO".
+
+![mobile controls](mobile_controls.png)
+
 ## Dev
     npm install
     npm run dev

@@ -63,11 +63,12 @@ function startGame(char = lastChar, mode: Mode = lastMode, extra?: Partial<GameO
   if (!isStory && !extra?.explore && !game.recorder) game.recorder = new Recorder(extra?.area ?? 'courtyard', mode);
   const ac = audioCtx(); if (ac) { music.init(ac.ctx, ac.master); music.setVolume(settings.music); }
   if (mode === 'spectator') { $('#help').textContent = t('specHelp'); } else $('#help').textContent = t('controls');
+  game.autoCancel = settings.autoCancel; game.onAuto = on => { document.body.classList.toggle('auto-on', on); $('#autoBtn').classList.toggle('on', on); $('#tAuto').classList.toggle('on', on); $('#autoBanner').textContent = t(on ? 'autoOn' : 'autoOff'); feed(t(on ? 'autoOn' : 'autoOff'), on ? '#ffd34d' : '#9fe0ff'); }; game.onAuto(false); document.body.classList.remove('auto-on');
   game.onEvent = (m, c) => feed(m, c); game.onCallout = (e, txt) => speech(e, txt); game.onDamage = damageNumber; game.onBanner = banner; game.onFlash = flash;
   game.onEnd = won => { const g = game!; setTimeout(() => postBattle(g, won), 1500); };
   show(null); game.start(); if (!input.touch && !input.noLock && !extra) canvas.requestPointerLock?.(); if (!extra) banner(t('title'), t(game.playerTeam === 'hogwarts' ? 'objective' : 'objectiveDeath'));
   clearInterval(hudTimer); hudTimer = window.setInterval(() => { if (game) { updateHUD(game); updateWarHUD(game); const c = game.ctrl; music.setMood(game.cinematic ? 'tension' : chooseMood({ state: game.state, boss: game.entities.some(e => e.alive && e.def.team !== game!.playerTeam && (e.def.boss || e.def.ovr >= 95)) && game.entities.some(e => e.alive && e.def.team !== game!.playerTeam && e.pos.distanceTo(c.pos) < 30 && (e.def.boss || e.def.ovr >= 95)), enemiesNear: game.entities.filter(e => e.alive && e.def.team !== game!.playerTeam && e.pos.distanceTo(c.pos) < 22).length + (game.war ? Math.min(3, Math.floor(game.war.aliveUnits().filter(u => u.def.team !== game!.playerTeam && Math.hypot(u.x - c.pos.x, u.z - c.pos.z) < 20).length / 4)) : 0), hpFrac: c.hp / c.maxHp })); } }, 100);
-  let last = performance.now(); const fx = (now: number) => { fxRaf = requestAnimationFrame(fx); if (game) updateFx(game, Math.min(0.05, (now - last) / 1000)); last = now; }; cancelAnimationFrame(fxRaf); fxRaf = requestAnimationFrame(fx); return game;
+  let last = performance.now(); const fx = (now: number) => { fxRaf = requestAnimationFrame(fx); if (game) updateFx(game, Math.max(0, Math.min(0.05, (now - last) / 1000))); last = now; }; cancelAnimationFrame(fxRaf); fxRaf = requestAnimationFrame(fx); return game;
 }
 function toMenu() { explorer?.stop(); explorer = null; music.setMood('exploration'); runner?.stop(); runner = null; $('#storyObj').classList.add('hidden'); document.body.className = ''; game?.dispose(); game = null; clearInterval(hudTimer); cancelAnimationFrame(fxRaf); document.exitPointerLock?.(); show('#menu'); }
 $('#btnPlay').onclick = () => { sfx.ui(); selMode = 'duel'; show('#select'); };
@@ -167,6 +168,14 @@ function postBattle(g: Game, won: boolean) { const th = getLang() === 'th'; cons
 $('#btnReplay').onclick = () => { if (lastReplay) openReplay(lastReplay); };
 async function openReplay(r: Replay) { const { ReplayViewer } = await import('./replay/viewer'); game?.dispose(); game = null; clearInterval(hudTimer); show(null); $('#hud').classList.add('hidden'); document.body.className = 'm-replay';
   (window as any).__replay = new ReplayViewer(canvas, r, () => { (window as any).__replay = null; document.body.className = ''; show('#menu'); }); }
+// touch layout settings (phase 8)
+new MutationObserver(() => { const want = !!settings.lefty; if (document.body.classList.contains('lefty') !== want) document.body.classList.toggle('lefty', want); }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+const applyCtl = () => { document.documentElement.style.setProperty('--bs', String(settings.btnSize ?? 1)); document.documentElement.style.setProperty('--bo', String(settings.btnOpacity ?? 0.85)); document.body.classList.toggle('lefty', !!settings.lefty); }; applyCtl();
+{ const bs = $('#sBtnSize') as HTMLInputElement, bo = $('#sBtnOp') as HTMLInputElement, lf = $('#sLefty') as HTMLInputElement, ac = $('#sAutoCancel') as HTMLInputElement;
+  const sync = () => { bs.value = String(settings.btnSize ?? 1); bo.value = String(settings.btnOpacity ?? 0.85); lf.checked = !!settings.lefty; ac.checked = !!settings.autoCancel; }; sync(); $('#btnSettings').addEventListener('click', sync);
+  bs.oninput = () => { settings.btnSize = +bs.value; saveSettings(settings); applyCtl(); }; bo.oninput = () => { settings.btnOpacity = +bo.value; saveSettings(settings); applyCtl(); };
+  lf.onchange = () => { settings.lefty = lf.checked; saveSettings(settings); applyCtl(); }; ac.onchange = () => { settings.autoCancel = ac.checked; saveSettings(settings); if (game) game.autoCancel = ac.checked; }; }
+$('#autoBtn').addEventListener('click', e => { e.stopPropagation(); if (game && game.state === 'playing') game.setAuto(!game.auto); });
 // settings (phase 5)
 const gfx = $('#sGfx') as HTMLSelectElement, adapt = $('#sAdapt') as HTMLInputElement, assist = $('#sAssist') as HTMLInputElement, fant = $('#sFantasy') as HTMLInputElement, mus = $('#sMusic') as HTMLInputElement;
 const syncSettings = () => { gfx.value = settings.gfx; adapt.checked = settings.adaptive; assist.checked = settings.assist; fant.checked = settings.fantasy; mus.value = String(settings.music); }; syncSettings();

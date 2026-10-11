@@ -29,7 +29,7 @@ export class ReplayViewer {
     on('mousemove', e => { if (this.drag) { this.yaw -= e.movementX * 0.005; this.pitch = Math.max(0.1, Math.min(1.45, this.pitch + e.movementY * 0.004)); } });
     on('wheel', e => { this.dist = Math.max(6, Math.min(120, this.dist * (e.deltaY > 0 ? 1.1 : 0.9))); }, canvas);
     let tx = 0, ty = 0; on('touchstart', e => { tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, canvas); on('touchmove', e => { const t0 = e.touches[0]; this.yaw -= (t0.clientX - tx) * 0.006; this.pitch = Math.max(0.1, Math.min(1.45, this.pitch + (t0.clientY - ty) * 0.005)); tx = t0.clientX; ty = t0.clientY; }, canvas);
-    on('resize', () => this.resize()); this.resize(); this.last = performance.now(); const loop = (now: number) => { this.raf = requestAnimationFrame(loop); const dt = Math.min(0.05, (now - this.last) / 1000); this.last = now; this.update(dt); }; this.raf = requestAnimationFrame(loop);
+    on('resize', () => this.resize()); this.resize(); this.last = performance.now(); const loop = (now: number) => { this.raf = requestAnimationFrame(loop); const dt = Math.max(0, Math.min(0.05, (now - this.last) / 1000)); this.last = now; this.update(dt); }; this.raf = requestAnimationFrame(loop);
   }
   scene: THREE.Scene;
   resize() { this.r.setSize(innerWidth, innerHeight); this.cam.aspect = innerWidth / innerHeight; this.cam.updateProjectionMatrix(); }
