@@ -1,9 +1,10 @@
 <!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>The Last Battle of Hogwarts — Fan Project</title>  <script type="module" crossorigin src="/hogwarts-last-battle/assets/index-DxrmptYg.js"></script>
-  <link rel="modulepreload" crossorigin href="/hogwarts-last-battle/assets/three-DwRTVkzS.js">
-  <link rel="modulepreload" crossorigin href="/hogwarts-last-battle/assets/content-BzZJw9hX.js">
-  <link rel="modulepreload" crossorigin href="/hogwarts-last-battle/assets/engine-C2qkWPk6.js">
-  <link rel="stylesheet" crossorigin href="/hogwarts-last-battle/assets/index-DSuFSW8t.css">
+<title>The Last Battle of Hogwarts — Fan Project</title>  <script type="module" crossorigin src="./assets/index-CkJ8TMyp.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/three--dT-lrkg.js">
+  <link rel="modulepreload" crossorigin href="./assets/rolldown-runtime-DK3Fl9T5.js">
+  <link rel="modulepreload" crossorigin href="./assets/content-D-L2OItf.js">
+  <link rel="modulepreload" crossorigin href="./assets/engine-DkRqjHM5.js">
+  <link rel="stylesheet" crossorigin href="./assets/index-BxrwTvZ7.css">
 </head><body>
 <canvas id="c"></canvas><div id="speed"></div><div id="flash"></div><div id="fx"></div><div id="banner"></div>
 <div id="lbTop"></div><div id="lbBot"></div><div id="sub"></div><button id="skip" data-t="skip"></button><div id="white"></div><div id="chapterCard"></div><div id="bark"></div><div id="saveToast"></div>
@@ -13,14 +14,14 @@
   <div id="warHud"><div id="prog"><div id="progFill"></div><div id="progMid"></div></div><div id="progTxt"></div><div id="zones"></div><div id="missions"></div><div id="warStats"></div><canvas id="minimap" width="170" height="300"></canvas><div id="specName"></div></div>
   <div id="cmd"><h4 data-t="squads"></h4><div id="squadList"></div><h4 data-t="zonesT"></h4><div id="zoneBtns"></div><h4 data-t="orders"></h4><div id="orderBtns"><button data-order="attack">⚔ <span data-t="oAttack"></span></button><button data-order="defend">🛡 <span data-t="oDefend"></span></button><button data-order="retreat">↩ <span data-t="oRetreat"></span></button><button data-order="protect">♥ <span data-t="oProtect"></span></button></div><small data-t="cmdHelp"></small></div>
   <div id="spells"></div><div id="skills"></div><div id="combo"></div><div id="clashUI"><div id="clashHelp"></div><div class="ctrack"><div class="czone"></div><div id="clashMarker"></div></div><div class="ptrack"><div id="clashBar"></div></div><div id="clashTime"></div></div><div id="feed"></div><div id="cross">✦</div><div id="help"></div>
-  <div id="autoBanner"></div><div id="hotbarHint"></div><button id="autoBtn" title="AUTO (T)"><i>🤖</i> AUTO <kbd>T</kbd></button>
+  <div id="autoBanner"></div><div id="hotbarHint"></div><button id="autoBtn" title="AUTO (T)"><i>🤖</i> AUTO <kbd>T</kbd></button><button id="camBtn" title="Camera (V) · shoulder swap (B) · aim/zoom: hold Z or middle mouse"><i>🎥</i> <span id="camL"></span> <kbd>V</kbd></button>
   <div id="touch"><div id="stick"><div class="knob"></div></div>
-    <div id="ttop"><button id="tAuto" class="tb"><i>🤖</i><span>AUTO</span></button><button id="tSwitch" class="tb"><i>👥</i><span data-t="tSwitchL"></span></button><button id="tPause" class="tb"><i>⏸</i></button></div>
+    <div id="ttop"><button id="tAuto" class="tb"><i>🤖</i><span>AUTO</span></button><button id="tSwitch" class="tb"><i>👥</i><span data-t="tSwitchL"></span></button><button id="tCam" class="tb"><i>🎥</i><span id="tCamL"></span></button><button id="tPause" class="tb"><i>⏸</i></button></div>
     <button id="tSprint" class="tsm"><i>🏃</i><span data-t="tSprintL"></span></button>
     <div id="act"><button id="tFire" class="tbig"><i>✨</i><span id="tFireL"></span></button>
       <button id="tS1" class="tsk"><i class="ic"></i><span class="nm"></span><em class="cd"></em><kbd>1</kbd></button><button id="tS2" class="tsk"><i class="ic"></i><span class="nm"></span><em class="cd"></em><kbd>2</kbd></button><button id="tS3" class="tsk"><i class="ic"></i><span class="nm"></span><em class="cd"></em><kbd>3</kbd></button>
       <button id="tUlt" class="tsk ult"><i class="ic">★</i><span class="nm"></span><em class="cd"></em><kbd>R</kbd></button>
-      <button id="tShield" class="tsm"><i>🛡</i><span data-t="tShieldL"></span></button><button id="tDodge" class="tsm"><i>💨</i><span data-t="tDodgeL"></span></button><button id="tNext" class="tsm"><i>⟳</i><span id="tNextL"></span></button></div></div>
+      <button id="tShield" class="tsm"><i>🛡</i><span data-t="tShieldL"></span></button><button id="tDodge" class="tsm"><i>💨</i><span data-t="tDodgeL"></span></button><button id="tAim" class="tsm"><i>🎯</i><span>Aim</span></button><button id="tNext" class="tsm"><i>⟳</i><span id="tNextL"></span></button></div></div>
   <div id="pauseOv" class="overlay"><div class="panel"><h2 data-t="paused"></h2><button id="btnResume" data-t="resume"></button><div id="storyPause"><button data-slot="0">💾 <span data-t="saveSlot"></span> 1</button><button data-slot="1">💾 <span data-t="saveSlot"></span> 2</button><button data-slot="2">💾 <span data-t="saveSlot"></span> 3</button><button id="btnCheckpoint" data-t="retryCp"></button></div><button id="btnPauseMenu" data-t="menu"></button></div></div>
 </div>
 <div id="menu" class="overlay"><div class="panel">
@@ -41,6 +42,7 @@
   <label class="chk"><input id="sAdapt" type="checkbox"> <span data-t="adaptT"></span></label><label class="chk"><input id="sAssist" type="checkbox"> <span data-t="assistT"></span></label>
   <label><span data-t="musicT"></span><input id="sMusic" type="range" min="0" max="1" step="0.05"></label><label class="chk"><input id="sFantasy" type="checkbox"> <span data-t="fantasyT"></span></label>
   <label><span data-t="btnSizeT"></span><input id="sBtnSize" type="range" min="0.8" max="1.4" step="0.05"></label><label><span data-t="btnOpT"></span><input id="sBtnOp" type="range" min="0.35" max="1" step="0.05"></label>
+  <label><span data-t="camT"></span><select id="sCam"><option value="tps"></option><option value="fps"></option><option value="follow"></option><option value="far"></option><option value="top"></option></select></label><label class="chk"><input id="sInvY" type="checkbox"> <span data-t="invYT"></span></label><label><span data-t="smoothT"></span><input id="sSmooth" type="range" min="0" max="0.9" step="0.05"></label><label><span data-t="touchLookT"></span><input id="sTouchLook" type="range" min="0.3" max="3" step="0.1"></label>
   <label class="chk"><input id="sLefty" type="checkbox"> <span data-t="leftyT"></span></label><label class="chk"><input id="sAutoCancel" type="checkbox"> <span data-t="autoCancelT"></span></label>
   <label><span data-t="difficulty"></span><select id="sDiff"><option value="easy">Easy</option><option value="normal">Normal</option><option value="hard">Hard</option></select></label>
   <button id="btnBack" data-t="back"></button></div></div>
