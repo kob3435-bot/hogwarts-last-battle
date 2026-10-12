@@ -63,6 +63,8 @@ function startGame(char = lastChar, mode: Mode = lastMode, extra?: Partial<GameO
   if (!isStory && !extra?.explore && !game.recorder) game.recorder = new Recorder(extra?.area ?? 'courtyard', mode);
   const ac = audioCtx(); if (ac) { music.init(ac.ctx, ac.master); music.setVolume(settings.music); }
   if (mode === 'spectator') { $('#help').textContent = t('specHelp'); } else $('#help').textContent = t('controls');
+  game.autoCancel = settings.autoCancel; input.touchLook = settings.touchLook ?? 1;
+  game.onCam = m => { settings.camMode = m; saveSettings(settings); updCam(m); }; updCam(game.camMode);
   game.autoCancel = settings.autoCancel; game.onAuto = on => { document.body.classList.toggle('auto-on', on); $('#autoBtn').classList.toggle('on', on); $('#tAuto').classList.toggle('on', on); $('#autoBanner').textContent = t(on ? 'autoOn' : 'autoOff'); feed(t(on ? 'autoOn' : 'autoOff'), on ? '#ffd34d' : '#9fe0ff'); }; game.onAuto(false); document.body.classList.remove('auto-on');
   game.onEvent = (m, c) => feed(m, c); game.onCallout = (e, txt) => speech(e, txt); game.onDamage = damageNumber; game.onBanner = banner; game.onFlash = flash;
   game.onEnd = won => { const g = game!; setTimeout(() => postBattle(g, won), 1500); };
@@ -168,6 +170,14 @@ function postBattle(g: Game, won: boolean) { const th = getLang() === 'th'; cons
 $('#btnReplay').onclick = () => { if (lastReplay) openReplay(lastReplay); };
 async function openReplay(r: Replay) { const { ReplayViewer } = await import('./replay/viewer'); game?.dispose(); game = null; clearInterval(hudTimer); show(null); $('#hud').classList.add('hidden'); document.body.className = 'm-replay';
   (window as any).__replay = new ReplayViewer(canvas, r, () => { (window as any).__replay = null; document.body.className = ''; show('#menu'); }); }
+// camera modes (phase 9)
+import { CAM_LABEL, nextMode } from './rendering/camera';
+function updCam(m: string) { const L = (CAM_LABEL as any)[m]; const txt = L ? L[getLang() === 'th' ? 1 : 0 as any] ?? L.en : m; const lab = getLang() === 'th' ? L.th : L.en; $('#camL').textContent = lab; $('#tCamL').textContent = lab; ['fps', 'tps', 'follow', 'far', 'top'].forEach(k => document.body.classList.toggle('cam-' + k, k === m)); void txt; }
+$('#camBtn').addEventListener('click', e => { e.stopPropagation(); if (game) game.setCamMode(nextMode(game.camMode)); else { settings.camMode = nextMode(settings.camMode); saveSettings(settings); updCam(settings.camMode); } });
+{ const sc = $('#sCam') as HTMLSelectElement, iy = $('#sInvY') as HTMLInputElement, sm = $('#sSmooth') as HTMLInputElement, tl = $('#sTouchLook') as HTMLInputElement;
+  const sync = () => { [...sc.options].forEach(o => o.textContent = (CAM_LABEL as any)[o.value][getLang() === 'th' ? 'th' : 'en']); sc.value = settings.camMode ?? 'tps'; iy.checked = !!settings.invertY; sm.value = String(settings.camSmooth ?? 0.3); tl.value = String(settings.touchLook ?? 1); }; sync(); $('#btnSettings').addEventListener('click', sync);
+  sc.onchange = () => { settings.camMode = sc.value as any; saveSettings(settings); if (game) game.setCamMode(settings.camMode); updCam(settings.camMode); };
+  iy.onchange = () => { settings.invertY = iy.checked; saveSettings(settings); }; sm.oninput = () => { settings.camSmooth = +sm.value; saveSettings(settings); }; tl.oninput = () => { settings.touchLook = +tl.value; saveSettings(settings); input.touchLook = +tl.value; }; }
 // touch layout settings (phase 8)
 new MutationObserver(() => { const want = !!settings.lefty; if (document.body.classList.contains('lefty') !== want) document.body.classList.toggle('lefty', want); }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 const applyCtl = () => { document.documentElement.style.setProperty('--bs', String(settings.btnSize ?? 1)); document.documentElement.style.setProperty('--bo', String(settings.btnOpacity ?? 0.85)); document.body.classList.toggle('lefty', !!settings.lefty); }; applyCtl();
@@ -188,4 +198,5 @@ document.addEventListener('pointerdown', () => { initAudio(); const ac = audioCt
 (window as any).__progress = () => progress; (window as any).__whatifs = WHAT_IFS; (window as any).__simulate = simulate; (window as any).__openReplay = () => lastReplay && openReplay(lastReplay); (window as any).__startCustom = (p: string, a: Area, b: CustomBattle) => screenCtx().startCustom(p, a, b); (window as any).__explore = startExplore;
 (window as any).__toMenu = toMenu;
 
+(window as any).__crowd = () => import('./ui/lineup').then(m => m.crowdLineup());
 (window as any).__lineup = (ids: string[], o: any) => import('./ui/lineup').then(m => m.lineup(ids, o));

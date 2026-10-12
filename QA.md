@@ -19,3 +19,18 @@ Not verified: real GPU frame rates (headless uses SwiftShader at ~10-15 fps), re
 - `uniquekits.ts`: 29 template characters get distinct sig-1 + ultimate using 12 new effect mechanics (zone, chain, meteor, pull, mark, drain, cleanse, haste, silence, blink, execute, coloured volleys).
 - Tests: 86 pass. pw5/pwmobile/pwmenu/pw4/pw7: 0 console errors. Spectator (13 heroes + ~200 instanced units, SwiftShader): ~860 draw calls/frame, ~320 without heroes.
 - Screenshots: lineup.png, lineup_order.png, lineup_death.png, lineup_legends.png, closeup_*.png, shot7*.png, gallery7*.png.
+
+## Phase 8 — AUTO + controls redesign
+- AUTO: T hotkey, desktop HUD button, mobile top button; AI fully drives the controlled hero; glowing ON state + banner; optional "input cancels AUTO" setting.
+- Mobile: floating joystick, 96px attack button, skills 1/2/3 + ultimate arc with radial cooldowns/icons/names, shield/dodge/spell-switch, AUTO/switch/pause top area; all >=56px, no overlaps (checked in landscape 750x342 and portrait 412x839), left-hand mirror, size/opacity sliders (persisted). Commander keeps pause only.
+- Desktop: hotbar tooltips + key-hint line.
+- Bug fix: stale rAF timestamps could make timeScale negative (game ran backwards: stuns/cooldowns grew). dt now clamped >=0 in all loops.
+- Highspire build: neutral disclaimer (no franchise owners named).
+
+## Phase 9 — camera modes + anime model pass
+- Camera modes (V / HUD 🎥 button / Settings, persisted): Over-shoulder TPS (B swaps shoulder), First-person (own model hidden, hands + wand view-model with bob/recoil/shield pose), Follow, Cinematic far, Top-down (mouse cursor aims on desktop; nearest foe on touch). Commander/Spectator keep their own cameras.
+- Look: pointer-lock mouse-look, sensitivity, invert-Y, smoothing slider, per-mode pitch clamps; aim/zoom on hold (Z, middle mouse, gamepad R3/D-pad down, touch 🎯 Aim) reduces FOV and sensitivity; body faces aim in FPS/TPS; spells fire to the crosshair raycast point (verified: projectile direction · aim vector = 1.000 in all 5 modes); camera collision against walls in TPS/Follow/Far.
+- Mobile: swipe-look on right half with sensitivity slider, 🎥 camera button in the top bar, 🎯 Aim button. Gamepad: right stick look, D-pad up cycles camera.
+- Crowd: new multi-layer instanced anime models (vertex-coloured, rim light, smooth-normal inverted-hull outline) for students (house scarf/tie/trim per house, skin/hair variety, big eyes), Order (coloured coats, phoenix pin), Death Eaters (pointed hood, tattered hem, silver mask with red eyes), giants, acromantulas (striped, jointed legs, red eye cluster), dementors (tattered transparent cloak, bony hands), stone knights (shield + sword). ~5-6 draw calls per unit type regardless of count.
+- Heroes: higher-segment rounded rig primitives, layered hair strands + ahoge, signature-colour sleeve cuffs/sash/hem trim, signature rim light and ground glow.
+- Known: headless (SwiftShader) runs are slow so touch taps can apply one frame-batch late; no LOD reduction for crowd meshes beyond instancing (they are low-poly enough).

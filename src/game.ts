@@ -21,6 +21,7 @@ import { synergyBonus, moraleReaction } from './combat/synergy';
 import { getLang } from './ui/i18n';
 import { Recorder } from './replay/recorder';
 import { animateRig } from './character/rig';
+import { CamMode, CAM_CFG, nextMode, buildViewModel } from './rendering/camera';
 
 export type GameState = 'playing' | 'paused' | 'won' | 'lost';
 export type Mode = 'duel' | 'war' | 'commander' | 'spectator';
@@ -43,7 +44,7 @@ export class Game implements AIWorld {
   onDamage: (p: THREE.Vector3, amt: number, color: string, big: boolean) => void = () => {}; onBanner: (title: string, sub?: string, color?: string) => void = () => {}; onFlash: (color: string) => void = () => {};
   private raf = 0; private last = 0; stats = { cast: 0, hits: 0, kills: 0, clashesWon: 0, bestCombo: 0 }; private ray = new THREE.Raycaster();
   constructor(public canvas: HTMLCanvasElement, public settings: Settings, input: Input, public opts: GameOpts = {}) {
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: devicePixelRatio < 2, powerPreference: 'high-performance' }); this.gfx = (settings as any).gfx ?? 'high'; this.adaptive = (settings as any).adaptive ?? true; this.assist = !!(settings as any).assist;
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: devicePixelRatio < 2, powerPreference: 'high-performance' }); this.gfx = (settings as any).gfx ?? 'high'; this.adaptive = (settings as any).adaptive ?? true; this.camMode = ((settings as any).camMode ?? 'tps') as CamMode; (this as any)._baseNoLock = input.noLock; if (this.camMode === 'top') input.noLock = true; this.assist = !!(settings as any).assist;
     this.prMax = { low: 0.75, med: 1, high: Math.min(devicePixelRatio, 1.5), ultra: Math.min(devicePixelRatio, 2) }[this.gfx]; this.pr = this.prMax; this.renderer.setPixelRatio(this.pr);
     this.renderer.shadowMap.enabled = this.gfx !== 'low'; this.renderer.shadowMap.type = this.gfx === 'ultra' ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap; this.renderer.toneMapping = THREE.NoToneMapping;
     this.camera = new THREE.PerspectiveCamera(62, 1, 0.1, 900); this.world = buildArea(opts.area ?? 'courtyard'); this.particles = new Particles(this.world.scene, 900); this.destruction = new Destruction(this.world, this.particles);
@@ -105,6 +106,9 @@ export class Game implements AIWorld {
   foesOf(e: Entity) { return this.entities.filter(o => o.alive && o.def.team !== e.def.team); }
   alliesOf(e: Entity) { return this.entities.filter(o => o.alive && o.def.team === e.def.team); }
   /** AUTO: AI fully plays the controlled character; control returns instantly when switched off. */
+  camMode: CamMode = 'tps'; shoulder = 1; aimZoom = 0; vm: ReturnType<typeof buildViewModel> | null = null; vmFor: Entity | null = null; smX = 0; smY = 0;
+  setCamMode(m: CamMode) { this.camMode = m; this.onCam(m); this.input.noLock = m === 'top' ? true : (this as any)._baseNoLock ?? false; if (m === 'top') document.exitPointerLock?.(); }
+  onCam: (m: CamMode) => void = () => {};
   auto = false; autoCancel = false; onAuto: (on: boolean) => void = () => {};
   canAuto() { return this.mode !== 'spectator' && this.mode !== 'commander' && !this.opts.auto && !!this.ctrl; }
   setAuto(on: boolean) { if (on && !this.canAuto()) return; this.auto = on; if (this.ctrl && !this.opts.auto) { this.ctrl.playerControlled = !on; if (!on) { this.ctrl.shielding = false; this.ctrl.ai.target = null as any; } } this.input.fire = false; this.input.shield = false; this.onAuto(on); }
@@ -270,14 +274,19 @@ export class Game implements AIWorld {
   // ---------------- main step ----------------
   step(rawDt: number) {
     this.input.pollGamepad();
-    if (this.cinematic) { this.input.consume(); this.particles.update(rawDt); for (const e of this.entities) e.alive ? this.animate(e, rawDt, 0) : this.animateDeath(e, rawDt); return; }
+    if (this.cinematic) { this.updateViewModel(false, 0); this.input.consume(); this.particles.update(rawDt); for (const e of this.entities) e.alive ? this.animate(e, rawDt, 0) : this.animateDeath(e, rawDt); return; }
     const inp = this.input.consume();
     if (inp.pause && (this.state === 'playing' || this.state === 'paused')) { this.state = this.state === 'playing' ? 'paused' : 'playing'; if (this.state === 'paused') document.exitPointerLock?.(); }
     if (this.state === 'paused') return;
     if (this.slowT > 0) { this.slowT -= rawDt; this.timeScale = 0.3; } else this.timeScale = Math.max(0.05, Math.min(1, this.timeScale + Math.max(0, rawDt) * 3)); rawDt = Math.max(0, rawDt);
     const dt = rawDt * this.timeScale * (this.specSlow ? 0.3 : 1); this.time += dt;
     if (this.mode === 'spectator') { if (inp.cycle) this.follow += inp.cycle; if (inp.sw) this.follow++; if (inp.dodge) this.specSlow = !this.specSlow; }
-    const sens = 0.0025 * this.settings.sensitivity; this.camYaw -= inp.dx * sens; this.camPitch = THREE.MathUtils.clamp(this.camPitch + inp.dy * sens, -0.5, 1.1);
+    if (inp.cam) this.setCamMode(nextMode(this.camMode)); if (inp.shoulder) this.shoulder = -this.shoulder;
+    { const st: any = this.settings; const sm = THREE.MathUtils.clamp(st.camSmooth ?? 0.3, 0, 0.9); const k = 1 - Math.pow(sm, 1.5) * 0.9;
+      this.smX += (inp.dx - this.smX) * k; this.smY += (inp.dy - this.smY) * k; const aiming = this.input.aim && (this.camMode === 'fps' || this.camMode === 'tps' || this.camMode === 'follow');
+      this.aimZoom += ((aiming ? 1 : 0) - this.aimZoom) * Math.min(1, rawDt * 12); const sens = 0.0025 * this.settings.sensitivity * (1 - 0.5 * this.aimZoom);
+      const C = (this.mode === 'commander' || this.mode === 'spectator') ? CAM_CFG.follow : CAM_CFG[this.camMode];
+      if (C.mouseLook) { this.camYaw -= this.smX * sens; this.camPitch = THREE.MathUtils.clamp(this.camPitch + this.smY * sens * (st.invertY ? -1 : 1), C.pitchMin, C.pitchMax); } else this.camPitch = C.pitchMin; }
     if (inp.auto) this.setAuto(!this.auto);
     if (this.auto && this.autoCancel && this.state === 'playing') { const [ax, ay] = this.input.axis(); if (Math.abs(ax) + Math.abs(ay) > 0.2 || this.input.fire || inp.skill >= 0 || inp.dodge) this.setAuto(false); }
     if (this.auto && inp.sw && this.state === 'playing') this.switchCharacter();
@@ -314,7 +323,7 @@ export class Game implements AIWorld {
           this.assistT = (this.assistT ?? 0) - dt; if (foe && this.assistT <= 0 && e.kit) { this.assistT = 3; for (let i = e.kit.sigs.length - 1; i >= 0; i--) if (e.skillCd[i] <= 0 && e.energy >= e.kit.sigs[i].cost) { this.useSkill(e, i, aim); break; } if (e.ult >= ULT_MAX) this.useSkill(e, 3, aim); } }
         e.shielding = aShield && e.energy > 2 && e.stunned <= 0;
         const ty = Math.atan2(aim.x - e.pos.x, aim.z - e.pos.z);
-        if (aFire || e.shielding) e.yaw = ty; else if (move.lengthSq() > 0.01) e.yaw = Math.atan2(move.x, move.z);
+        if (aFire || e.shielding || this.camMode === 'fps' || this.camMode === 'tps' || (this.input.aim && this.camMode === 'follow')) e.yaw = ty; else if (move.lengthSq() > 0.01) e.yaw = Math.atan2(move.x, move.z);
         if (aFire && !e.shielding) { e.yaw = ty; if (this.cast(e, e.spell, aim)) this.input.fireTap = false; }
         if (inp.dodge) this.startDodge(e, move.lengthSq() > 0.01 ? move : camRight.clone().multiplyScalar(-1));
         if (sprint && move.lengthSq() > 0.01) this.speedFx = Math.max(this.speedFx, 0.45);
@@ -395,6 +404,10 @@ export class Game implements AIWorld {
     if (this.war) for (const u of this.war.units) if (u.active && u.state === 'fight' && u.def.type === 'giant') l.push({ x: u.x, z: u.z, name: 'Giant #' + u.idx, scale: 2 });
     return l; }
   aimPoint(): THREE.Vector3 {
+    if (this.camMode === 'top' && this.mode !== 'commander' && this.mode !== 'spectator') { const mp = this.input.touch ? null : new THREE.Vector2(this.input.mx, this.input.my);
+      if (mp) { this.ray.setFromCamera(mp, this.camera); const r = this.ray.ray; const tt = r.direction.y < -0.01 ? (1.2 - r.origin.y) / r.direction.y : 30; const gp = r.origin.clone().addScaledVector(r.direction, tt);
+        let best: Entity | null = null, bd = 2.5; for (const f of this.foesOf(this.ctrl)) { const d = Math.hypot(f.pos.x - gp.x, f.pos.z - gp.z); if (d < bd) { bd = d; best = f; } } return best ? best.chest() : gp; }
+      const f = this.nearestFoe(this.ctrl, this.ctrl.pos); return f ? f.chest() : this.ctrl.pos.clone().add(new THREE.Vector3(Math.sin(this.ctrl.yaw) * 10, 1.3, Math.cos(this.ctrl.yaw) * 10)); }
     this.ray.setFromCamera(new THREE.Vector2(0, 0), this.camera); const o = this.ray.ray.origin, d = this.ray.ray.direction;
     let bestT = 80; let ang = 0.12, pick: Entity | null = null;
     for (const f of this.foesOf(this.ctrl)) { const v = f.chest().sub(o); const dist = v.length(); const a = v.normalize().angleTo(d); if (a < ang && dist < 60) { ang = a; pick = f; } }
@@ -456,15 +469,32 @@ export class Game implements AIWorld {
     if (this.mode === 'spectator') { const list = this.followList(); if (!list.length) return; const f = list[((this.follow % list.length) + list.length) % list.length]; this.camYaw += dt * 0.25;
       const big = f.scale; const piv = new THREE.Vector3(f.x, 1.6 * big, f.z); const d = 7 * big + 3; const want = piv.clone().add(new THREE.Vector3(Math.sin(this.camYaw) * d, 3 + big * 2, Math.cos(this.camYaw) * d));
       this.camera.position.lerp(want, Math.min(1, dt * 4)); this.camera.lookAt(piv); this.specLabel = f.name; return; }
-    const t = this.ctrl.pos; const pivot = new THREE.Vector3(t.x, 2.0, t.z);
-    const ult = this.slowT > 0; const camDist = ult ? 4.2 : this.clash && this.ctrl.clashing ? 7.5 : 6;
+    const M = this.camMode, C = CAM_CFG[M]; const sc = this.ctrl.def.look.scale ?? 1; const t = this.ctrl.pos; const pivot = new THREE.Vector3(t.x, C.height * Math.min(1.6, sc), t.z);
+    const ult = this.slowT > 0; const clashing = !!(this.clash && this.ctrl.clashing);
     const dir = new THREE.Vector3(Math.sin(this.camYaw) * Math.cos(this.camPitch), Math.sin(this.camPitch), Math.cos(this.camYaw) * Math.cos(this.camPitch));
-    const right = new THREE.Vector3(Math.cos(this.camYaw), 0, -Math.sin(this.camYaw)); pivot.addScaledVector(right, 0.8);
-    let dist = camDist; for (let d = 0.5; d <= camDist; d += 0.25) { const p = pivot.clone().addScaledVector(dir, d); if (p.y < 0.3 || pointInBoxes(p.x, p.y, p.z, this.world.boxes)) { dist = Math.max(0.8, d - 0.4); break; } }
-    const want = pivot.clone().addScaledVector(dir, dist); this.camera.position.lerp(want, Math.min(1, dt * 14));
-    this.shake = Math.max(0, this.shake - dt * 1.5); if (this.shake > 0) this.camera.position.add(new THREE.Vector3((Math.random() - .5), (Math.random() - .5), 0).multiplyScalar(this.shake * 0.6));
-    const fov = 62 + this.speedFx * 8; if (Math.abs(this.camera.fov - fov) > 0.1) { this.camera.fov = fov; this.camera.updateProjectionMatrix(); }
-    this.camera.lookAt(pivot.clone().addScaledVector(dir, -10));
+    const right = new THREE.Vector3(Math.cos(this.camYaw), 0, -Math.sin(this.camYaw));
+    this.updateViewModel(M === 'fps' && !clashing && this.ctrl.alive, dt);
+    if (M === 'fps' && !clashing) { const fwd = dir.clone().negate(); const eye = pivot.clone().addScaledVector(new THREE.Vector3(fwd.x, 0, fwd.z).normalize(), 0.18 * sc);
+      if (this.ctrl.dodgeT > 0) eye.y -= 0.5; this.camera.position.lerp(eye, Math.min(1, dt * C.lerp)); this.shakeCam(dt); this.setFov(C.fov * (1 - 0.35 * this.aimZoom) + this.speedFx * 6); this.camera.lookAt(this.camera.position.clone().add(fwd)); return; }
+    const camDist = (ult ? Math.min(4.2, C.dist) : clashing ? 7.5 : C.dist * (1 - 0.3 * this.aimZoom)) * (M === 'top' ? Math.max(1, sc * 0.8) : Math.max(1, sc * 0.7));
+    pivot.addScaledVector(right, (M === 'tps' ? C.side * this.shoulder : C.side) * (clashing ? 0 : 1) * Math.max(1, sc * 0.6));
+    let dist = camDist; if (M !== 'top') for (let d = 0.5; d <= camDist; d += 0.25) { const p = pivot.clone().addScaledVector(dir, d); if (p.y < 0.3 || pointInBoxes(p.x, p.y, p.z, this.world.boxes)) { dist = Math.max(0.6, d - 0.4); break; } }
+    const want = pivot.clone().addScaledVector(dir, dist); this.camera.position.lerp(want, Math.min(1, dt * (ult ? 14 : C.lerp)));
+    this.shakeCam(dt); this.setFov(C.fov * (1 - 0.3 * this.aimZoom) + this.speedFx * 8);
+    if (M === 'top') this.camera.lookAt(pivot.x, 0, pivot.z); else this.camera.lookAt(pivot.clone().addScaledVector(dir, -10));
+  }
+  shakeCam(dt: number) { this.shake = Math.max(0, this.shake - dt * 1.5); if (this.shake > 0) this.camera.position.add(new THREE.Vector3((Math.random() - .5), (Math.random() - .5), 0).multiplyScalar(this.shake * 0.6)); }
+  setFov(f: number) { if (Math.abs(this.camera.fov - f) > 0.1) { this.camera.fov = f; this.camera.updateProjectionMatrix(); } }
+  /** FPS: hide own model, show hands + wand view-model with bob/recoil */
+  updateViewModel(on: boolean, dt: number) {
+    const e = this.ctrl; if (this.vmFor && (this.vmFor !== e || !on)) { this.vmFor.model.root.visible = true; this.vmFor = null; }
+    if (!on) { if (this.vm) this.vm.g.visible = false; return; }
+    if (!this.vm || (this.vm as any).id !== e.def.id) { if (this.vm) this.camera.remove(this.vm.g); const l = e.def.look; this.vm = buildViewModel(l.robe, l.skin, l.wandColor ?? 0x5a3620, l.spellColor ?? 0xffffff); (this.vm as any).id = e.def.id; this.camera.add(this.vm.g); if (!this.camera.parent) this.world.scene.add(this.camera); }
+    this.vm.g.visible = true; e.model.root.visible = false; this.vmFor = e;
+    const sp = Math.hypot(e.pos.x - ((this as any)._vx ?? e.pos.x), e.pos.z - ((this as any)._vz ?? e.pos.z)) / Math.max(dt, 1e-3); (this as any)._vx = e.pos.x; (this as any)._vz = e.pos.z; const bt = this.time * 9;
+    const rec = Math.max(0, 1 - e.castT / 0.18); const sh = e.shielding ? 1 : 0; const a = this.vm.arm;
+    a.position.set(0.27 - 0.14 * this.aimZoom + Math.sin(bt) * 0.008 * Math.min(1, sp / 5), -0.25 + Math.abs(Math.cos(bt)) * 0.01 * Math.min(1, sp / 5) + sh * 0.06, -0.34 + rec * 0.08);
+    a.rotation.set(0.05 + rec * 0.35 - sh * 0.3, 0.08 - 0.06 * this.aimZoom, sh * 0.6);
   }
 }
 function opts_auto(g: Game) { return !!g.opts.auto; }

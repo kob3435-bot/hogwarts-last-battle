@@ -9,7 +9,9 @@ import { Grid, FpsScaler, lodInterval, shouldUpdate } from './perf';
 import { Mission, MissionKind, MISSION_TEXT, createMission, stepMission } from './missions';
 import { resolveCircle } from '../core/collision';
 import { segmentHitsSphere } from '../combat/spells';
-import { toon } from '../rendering/toon';
+import { toon, addRim, inflate } from '../rendering/toon';
+import { crowdLayers, unitPalette, Tint } from './crowd';
+type CrowdMesh = { layers: { im: THREE.InstancedMesh; tint: Tint | 'outline' }[] };
 
 export type Order = 'attack' | 'defend' | 'retreat' | 'protect';
 export interface Squad { id: number; team: 'hogwarts' | 'death'; name: string; nameTh: string; order: Order; zone: number; protect: Entity | null; manual: boolean }
@@ -24,7 +26,7 @@ export class War {
   squads: Squad[]; controls: number[] = ZONES.map(z => z.home === 'hogwarts' ? 1 : z.home === 'death' ? -1 : 0); score = 0; winner: 0 | 1 | -1 = 0;
   cfg = { hogwarts: true, death: true, missions: true, deathPower: 1, army: 0 }; missions: Mission[] = []; missionT = 15; spawnT = 0; zoneT = 0; aiCmdT = 0; morale = { hogwarts: 0, death: 0 };
   stats = { kills: { hogwarts: 0, death: 0 }, revived: 0, downed: 0, spawned: { hogwarts: 0, death: 0 }, missionsWon: 0, missionsLost: 0, structures: 0 };
-  meshes = new Map<UnitType, { body: THREE.InstancedMesh; head: THREE.InstancedMesh; outline: THREE.InstancedMesh; extra?: THREE.InstancedMesh }>();
+  meshes = new Map<UnitType, CrowdMesh>();
   boltMesh: THREE.InstancedMesh; prevAlive = new Map<Entity, boolean>(); q: number[] = []; manualHogwarts = false;
   constructor(public g: Game) {
     const sq = (id: number, team: 'hogwarts' | 'death', name: string, nameTh: string, order: Order, zone: number): Squad => ({ id, team, name, nameTh, order, zone, protect: null, manual: false });
@@ -40,22 +42,16 @@ export class War {
   }
   buildMeshes() {
     const outlineMat = new THREE.MeshBasicMaterial({ color: 0x0a0812, side: THREE.BackSide });
-    const mk = (type: UnitType, body: THREE.BufferGeometry, head: THREE.BufferGeometry, opts: { transparent?: boolean; extra?: THREE.BufferGeometry } = {}) => {
-      const bm = toon(0xffffff); const hm = toon(0xffffff); if (opts.transparent) { bm.transparent = true; bm.opacity = 0.82; }
-      const body_ = new THREE.InstancedMesh(body, bm, MAX), head_ = new THREE.InstancedMesh(head, hm, MAX), out = new THREE.InstancedMesh(body.clone().scale(1.1, 1.04, 1.1), outlineMat, MAX);
-      let extra: THREE.InstancedMesh | undefined; if (opts.extra) { extra = new THREE.InstancedMesh(opts.extra, toon(0x221a20), MAX); extra.count = 0; extra.frustumCulled = false; this.g.world.scene.add(extra); }
-      for (const m of [body_, head_, out]) { m.count = 0; m.frustumCulled = false; m.castShadow = m !== out; this.g.world.scene.add(m); m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); }
-      tmp.position.set(0, -50, 0); tmp.scale.setScalar(0.0001); tmp.updateMatrix();
-      for (let i = 0; i < MAX; i++) { body_.setColorAt(i, col.setHex(0xffffff)); head_.setColorAt(i, col.setHex(0xffffff)); for (const m of [body_, head_, out]) m.setMatrixAt(i, tmp.matrix); extra?.setMatrixAt(i, tmp.matrix); }
-      this.meshes.set(type, { body: body_, head: head_, outline: out, extra });
-    };
-    const robe = () => new THREE.ConeGeometry(0.45, 1.2, 8).translate(0, 0.6, 0), bigHead = () => new THREE.SphereGeometry(0.33, 10, 8).translate(0, 1.5, 0);
-    mk('student', robe(), bigHead()); mk('order', robe(), bigHead()); mk('deathEater', robe(), new THREE.SphereGeometry(0.3, 10, 8).translate(0, 1.45, 0));
-    mk('statue', new THREE.BoxGeometry(0.9, 1.3, 0.6).translate(0, 0.65, 0), new THREE.BoxGeometry(0.5, 0.5, 0.5).translate(0, 1.55, 0));
-    mk('giant', new THREE.CylinderGeometry(0.42, 0.55, 1.3, 8).translate(0, 0.65, 0), new THREE.SphereGeometry(0.3, 10, 8).translate(0, 1.5, 0.05));
-    const legs: THREE.BufferGeometry[] = []; for (let k = 0; k < 8; k++) { const side = k < 4 ? 1 : -1; const a = ((k % 4) - 1.5) * 0.45; const l = new THREE.CylinderGeometry(0.04, 0.05, 1.1, 4); l.rotateZ(side * 1.0); l.rotateY(a); l.translate(side * 0.55, 0.35, ((k % 4) - 1.5) * 0.3); legs.push(l); }
-    mk('acromantula', new THREE.SphereGeometry(0.5, 10, 8).scale(1, 0.7, 1.3).translate(0, 0.5, -0.3), new THREE.SphereGeometry(0.28, 8, 6).translate(0, 0.5, 0.45), { extra: mergeGeometries(legs) });
-    mk('dementor', new THREE.ConeGeometry(0.5, 1.9, 7, 1, true).translate(0, 0.95, 0), new THREE.SphereGeometry(0.3, 8, 6).translate(0, 1.85, 0), { transparent: true });
+    const types: UnitType[] = ['student', 'order', 'deathEater', 'statue', 'giant', 'acromantula', 'dementor'];
+    tmp.position.set(0, -50, 0); tmp.scale.setScalar(0.0001); tmp.rotation.set(0, 0, 0); tmp.updateMatrix();
+    for (const type of types) { const layers = crowdLayers(type); const list: CrowdMesh['layers'] = [];
+      for (const L of layers) { const mat = toon(0xffffff, { emissive: L.emissive }); mat.vertexColors = true; if (L.transparent) { mat.transparent = true; mat.opacity = 0.84; mat.depthWrite = false; } if (L.rim) addRim(mat, L.rim, type === 'dementor' ? 0.6 : 0.4);
+        const im = new THREE.InstancedMesh(L.geo, mat, MAX); list.push({ im, tint: L.tint }); }
+      const silhouette = mergeGeometries(layers.filter(l => !l.noOutline).map(l => { const g = l.geo.clone(); g.deleteAttribute('color'); return g; }))!;
+      const outline = new THREE.InstancedMesh(inflate(silhouette, type === 'giant' ? 0.03 : 0.02), outlineMat, MAX); list.push({ im: outline, tint: 'outline' as any });
+      for (const { im, tint } of list) { im.count = 0; im.frustumCulled = false; im.castShadow = tint !== ('outline' as any) && tint !== 'fixed'; im.instanceMatrix.setUsage(THREE.DynamicDrawUsage); this.g.world.scene.add(im);
+        for (let i = 0; i < MAX; i++) { im.setMatrixAt(i, tmp.matrix); if (tint !== ('outline' as any)) im.setColorAt(i, col.setHex(0xffffff)); } }
+      this.meshes.set(type, { layers: list }); }
   }
   // ---------- spawning ----------
   spawn(team: 'hogwarts' | 'death', initial = false, forceType?: UnitType, at?: { x: number; z: number }, tag = 0, downed = false): Unit | null {
@@ -69,8 +65,11 @@ export class War {
     if (downed) u.hp = 0;
     [u.x, u.z] = clampToMap(p.x + (Math.random() - .5) * 6, p.z + (Math.random() - .5) * 6);
     if (team === 'hogwarts') u.squad = type === 'statue' ? 3 : type === 'order' ? 2 : (u.idx % 2); else u.squad = type === 'deathEater' ? 4 + (u.idx % 2) : 6;
-    const m = this.meshes.get(type)!; m.body.setColorAt(u.idx, col.setHex(u.color)); m.head.setColorAt(u.idx, col.setHex(type === 'deathEater' ? 0xd8dde6 : type === 'statue' ? 0xc8c4b8 : type === 'giant' ? 0xa07a5a : type === 'acromantula' ? 0x2a2026 : type === 'dementor' ? 0x0d0a14 : 0xffdcc0));
-    if (m.body.instanceColor) m.body.instanceColor.needsUpdate = true; if (m.head.instanceColor) m.head.instanceColor.needsUpdate = true;
+    for (const [t2, m2] of this.meshes) if (t2 !== type) { tmp.position.set(0, -50, 0); tmp.scale.setScalar(0.0001); tmp.rotation.set(0, 0, 0); tmp.updateMatrix(); for (const { im } of m2.layers) { im.setMatrixAt(u.idx, tmp.matrix); im.instanceMatrix.needsUpdate = true; } }
+    const pal = unitPalette(type, u.color); const m = this.meshes.get(type)!;
+    for (const { im, tint } of m.layers) { if (!im.instanceColor) continue; const hx = tint === 'c1' ? pal.c1 : tint === 'c2' ? pal.c2 : tint === 'skin' ? pal.skin : tint === 'hair' ? pal.hair : 0xffffff; im.setColorAt(u.idx, col.setHex(hx)); im.instanceColor.needsUpdate = true; }
+    if (false as boolean) { const m: any = null; m.body.setColorAt(u.idx, col.setHex(u.color)); m.head.setColorAt(u.idx, col.setHex(type === 'deathEater' ? 0xd8dde6 : type === 'statue' ? 0xc8c4b8 : type === 'giant' ? 0xa07a5a : type === 'acromantula' ? 0x2a2026 : type === 'dementor' ? 0x0d0a14 : 0xffdcc0));
+    }
     this.stats.spawned[team]++; return u;
   }
   teamCount(team: string) { let n = 0; for (const u of this.units) if (u.active && u.state === 'fight' && u.def.team === team) n++; return n; }
@@ -230,11 +229,11 @@ export class War {
       if (!u.active) { tmp.position.set(0, -50, 0); tmp.scale.setScalar(0.0001); tmp.rotation.set(0, 0, 0); }
       else { const lying = u.state !== 'fight'; const fly = u.def.type === 'dementor' ? 0.6 + Math.sin(u.bob) * 0.25 : 0; tmp.position.set(u.x, fly + (lying ? 0.3 : Math.abs(Math.sin(u.bob * 2)) * 0.05 * s), u.z);
         tmp.rotation.set(lying ? -Math.PI / 2 : 0, u.yaw, 0, 'YXZ'); tmp.scale.setScalar(s); }
-      tmp.updateMatrix(); m.body.setMatrixAt(u.idx, tmp.matrix); m.head.setMatrixAt(u.idx, tmp.matrix); m.outline.setMatrixAt(u.idx, tmp.matrix); m.extra?.setMatrixAt(u.idx, tmp.matrix);
+      tmp.updateMatrix(); for (const { im } of m.layers) im.setMatrixAt(u.idx, tmp.matrix);
       if (u.active) maxIdx.set(u.def.type, Math.max(maxIdx.get(u.def.type) ?? 0, u.idx + 1)); }
     // all instanced meshes share the same index space; draw up to the highest active index
     const top = this.units.reduce((a, u) => u.active ? Math.max(a, u.idx + 1) : a, 0);
-    for (const [, m] of this.meshes) { for (const im of [m.body, m.head, m.outline, m.extra]) { if (!im) continue; im.count = top; im.instanceMatrix.needsUpdate = true; } }
+    for (const [, m] of this.meshes) { for (const { im } of m.layers) { im.count = top; im.instanceMatrix.needsUpdate = true; } }
     void counts; void maxIdx; void dt;
     let n = 0; for (const b of this.bolts) if (b.active) { tmp.position.set(b.x, b.y, b.z); tmp.scale.setScalar(1); tmp.rotation.set(0, 0, 0); tmp.updateMatrix(); this.boltMesh.setMatrixAt(n, tmp.matrix); this.boltMesh.setColorAt(n, col.setHex(b.color).multiplyScalar(2)); n++; }
     this.boltMesh.count = n; this.boltMesh.instanceMatrix.needsUpdate = true; if (this.boltMesh.instanceColor) this.boltMesh.instanceColor.needsUpdate = true;

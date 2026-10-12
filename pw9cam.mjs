@@ -1,0 +1,15 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch({ args: ['--use-angle=swiftshader','--enable-unsafe-swiftshader'] });
+const p = await b.newPage({ viewport: { width: 1280, height: 720 } }); const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
+await p.goto('http://localhost:4175/'); await p.waitForTimeout(700); await p.evaluate(() => { const s = JSON.parse(localStorage.getItem('hp-lastbattle-settings-v1') || '{}'); s.lang = 'en'; s.camMode = 'tps'; localStorage.setItem('hp-lastbattle-settings-v1', JSON.stringify(s)); }); await p.reload(); await p.waitForTimeout(700);
+await p.click('#btnPlay'); await p.waitForTimeout(300); await p.click('[data-char="harry"]'); await p.waitForTimeout(1800);
+const shot = async (mode, file) => { await p.evaluate(m => { const g = __game(); g.setCamMode(m); const f = g.nearestFoe(g.ctrl, g.ctrl.pos); g.camYaw = Math.atan2(g.ctrl.pos.x - f.pos.x, g.ctrl.pos.z - f.pos.z); g.camPitch = m === 'fps' ? -0.05 : 0.15; g.ctrl.stunned = 0; for (const e of g.entities) if (e.def.team !== g.playerTeam) e.stunned = 3; }, mode);
+  await p.waitForTimeout(1200); const r = await p.evaluate(() => { const g = __game(); const aim = g.aimPoint(); g.ctrl.energy = 999; for (const k in g.ctrl.cds) g.ctrl.cds[k] = 0; const n0 = g.projectiles.length; const ok = g.cast(g.ctrl, g.ctrl.spell, aim); const pr = g.projectiles[g.projectiles.length - 1];
+    const dirOk = pr ? pr.vel.clone().normalize().dot(aim.clone().sub(pr.pos).normalize()) : null; return { mode: g.camMode, cast: ok, dirToCrosshair: dirOk?.toFixed(3), modelVisible: g.ctrl.model.root.visible, vm: !!g.vm?.g.visible, camY: g.camera.position.y.toFixed(1), fov: g.camera.fov.toFixed(0) }; });
+  await p.waitForTimeout(150); await p.screenshot({ path: file }); console.log(JSON.stringify(r)); };
+await shot('fps', 'cam_fps.png'); await shot('tps', 'cam_tps.png');
+await p.keyboard.press('KeyB'); await p.waitForTimeout(300); console.log('shoulder', await p.evaluate(() => __game().shoulder));
+await p.keyboard.down('KeyZ'); await p.waitForTimeout(600); console.log('aim zoom fov', await p.evaluate(() => __game().camera.fov.toFixed(0) + ' ' + document.body.classList.contains('aiming'))); await p.keyboard.up('KeyZ');
+await shot('follow', 'cam_follow.png'); await shot('far', 'cam_far.png'); await shot('top', 'cam_top.png');
+await p.keyboard.press('KeyV'); await p.waitForTimeout(300); console.log('V ->', await p.evaluate(() => __game().camMode + ' saved=' + JSON.parse(localStorage.getItem('hp-lastbattle-settings-v1')).camMode + ' label=' + document.querySelector('#camL').textContent));
+console.log('errors', errs.length, errs.slice(0, 3)); await b.close();

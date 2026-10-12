@@ -1,0 +1,10 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch({ args: ['--use-angle=swiftshader','--enable-unsafe-swiftshader'] });
+const p = await b.newPage({ viewport: { width: 1600, height: 700 } }); const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
+await p.goto('http://localhost:4175/'); await p.waitForTimeout(800);
+await p.evaluate(() => __crowd()); await p.waitForTimeout(2500); await p.screenshot({ path: 'minions.png' });
+await p.evaluate(() => document.querySelector('#lineupClose').click());
+await p.evaluate(() => __lineup(['harry','hermione','ron','voldemort','mcgonagall','neville','luna','bellatrix'], { poses: ['idle','cast','idle','ult','idle','victory','idle','cast'] })); await p.waitForTimeout(2500); await p.screenshot({ path: 'heroes8.png' });
+await p.evaluate(() => document.querySelector('#lineupClose').click());
+await p.evaluate(() => __lineup(['harry','luna','bellatrix'], { closeup: true })); await p.waitForTimeout(2000); await p.screenshot({ path: 'heroes_close.png' });
+console.log('errors', errs); await b.close();

@@ -183,3 +183,12 @@ body.lefty .touch #stick,body.lefty #stick{left:auto;right:calc(env(safe-area-in
 #help{display:none!important}
 @media (orientation:landscape) and (max-height:500px){.touch #boss{width:34vw!important;left:36%!important;transform:translateX(-50%);top:4px}.touch #objective{max-width:30vw;font-size:11px}}
 @media (orientation:portrait){.touch #allies{display:none}.touch #boss{top:118px!important;width:70vw!important}#ttop{top:170px;bottom:auto}.touch #stick{left:20px;bottom:calc(env(safe-area-inset-bottom) + 150px)}.touch #minimap{top:calc(env(safe-area-inset-top) + 380px)}}
+/* phase 9 camera */
+#autoBtn{left:calc(50% - 70px)}#camBtn{position:absolute;left:calc(50% + 70px);top:44px;transform:translateX(-50%);width:auto;margin:0;padding:6px 14px;border-radius:20px;pointer-events:auto;background:linear-gradient(#1f3a55dd,#0c1a2edd);border:2px solid #7ac8ff;color:#e0f4ff;font-weight:700;z-index:12;white-space:nowrap}
+.touch #camBtn{display:none}body.m-commander #camBtn,body.m-spectator #camBtn,body.m-commander #tCam,body.m-commander #tAim{display:none!important}
+#tAim{right:calc(var(--bs)*260px);bottom:calc(var(--bs)*200px)}
+@media (orientation:portrait){#tAim{right:calc(var(--bs)*6px);bottom:calc(var(--bs)*300px)}}
+body.cam-top #cross{display:none}
+#cross{transition:transform .12s,color .12s}body.aiming #cross{transform:translate(-50%,-50%) scale(.6);color:#ff6a6a}
+body.cam-fps #cross,body.cam-tps #cross{font-size:22px}
+#ttop{z-index:30}#ttop .tb{pointer-events:auto}

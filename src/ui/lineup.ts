@@ -26,3 +26,22 @@ export function lineup(ids: string[], opts: { closeup?: boolean; pose?: LineupPo
   raf = requestAnimationFrame(loop);
   cur = { stop: () => { cancelAnimationFrame(raf); r.dispose(); wrap.remove(); } }; close.onclick = () => { closeLineup(); opts.onClose?.(); };
 }
+/** Minion/crowd showcase: every unit type with several palettes (students in all four houses). */
+export async function crowdLineup(onClose?: () => void) {
+  closeLineup(); const { crowdLayers, unitPalette } = await import('../war/crowd'); const { toon, addRim, inflate } = await import('../rendering/toon'); const { UNITS } = await import('../war/units');
+  const wrap = document.createElement('div'); wrap.id = 'lineup'; const cv = document.createElement('canvas'); wrap.appendChild(cv); const close = document.createElement('button'); close.textContent = '✖'; close.id = 'lineupClose'; wrap.appendChild(close); document.body.appendChild(wrap);
+  const r = new THREE.WebGLRenderer({ canvas: cv, antialias: true }); r.setPixelRatio(Math.min(devicePixelRatio, 2)); r.setSize(innerWidth, innerHeight); r.setClearColor(0x2a1f45);
+  const scene = new THREE.Scene(); scene.add(new THREE.HemisphereLight(0xfff4e8, 0x40305a, 2.2)); const dl = new THREE.DirectionalLight(0xffffff, 1.6); dl.position.set(4, 8, 6); scene.add(dl);
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(60, 48), new THREE.MeshToonMaterial({ color: 0x4a3a6a })); floor.rotation.x = -Math.PI / 2; scene.add(floor);
+  const ol = new THREE.MeshBasicMaterial({ color: 0x0a0812, side: THREE.BackSide });
+  const row: [string, number][] = [['student', 0xb3152a], ['student', 0x2453c7], ['student', 0xe0b020], ['student', 0x1f8a4a], ['order', 0], ['order', 0], ['statue', 0], ['deathEater', 0], ['deathEater', 0], ['dementor', 0], ['acromantula', 0], ['giant', 0]];
+  let x = 0; const objs: THREE.Group[] = []; let seed = 3; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+  for (const [t, base] of row) { const ty = t as any; const sc = Math.min(UNITS[ty as keyof typeof UNITS].scale, 1.9); const pal = unitPalette(ty, base, rnd) as any; const grp = new THREE.Group();
+    for (const L of crowdLayers(ty)) { const m = toon(0xffffff, { emissive: L.emissive }); m.vertexColors = true; if (L.transparent) { m.transparent = true; m.opacity = 0.84; } if (L.rim) addRim(m, L.rim, 0.4);
+      m.color.setHex(L.tint === 'fixed' ? 0xffffff : pal[L.tint]); grp.add(new THREE.Mesh(L.geo, m)); if (!L.noOutline) { const g = L.geo.clone(); g.deleteAttribute('color'); grp.add(new THREE.Mesh(inflate(g, 0.02), ol)); } }
+    const w = ty === 'giant' ? 2.4 : ty === 'acromantula' ? 2.2 : 1.1 * sc; x += w / 2; grp.position.set(x, ty === 'dementor' ? 0.5 : 0, 0); grp.scale.setScalar(sc); grp.rotation.y = 0.25; x += w / 2 + 0.25; scene.add(grp); objs.push(grp); }
+  for (const o of objs) o.position.x -= x / 2;
+  const cam = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.1, 300); const d = Math.max(6, (x / 2 + 1) / (Math.tan(THREE.MathUtils.degToRad(15)) * cam.aspect)); cam.position.set(0, 2.6, d * 0.95); cam.lookAt(0, 1.6, 0);
+  let raf = 0, t = 0; const loop = () => { raf = requestAnimationFrame(loop); t += 0.016; objs.forEach((o, i) => { o.rotation.y = 0.25 + Math.sin(t * 0.6 + i) * 0.15; }); r.render(scene, cam); }; raf = requestAnimationFrame(loop);
+  cur = { stop: () => { cancelAnimationFrame(raf); r.dispose(); wrap.remove(); } }; close.onclick = () => { closeLineup(); onClose?.(); };
+}

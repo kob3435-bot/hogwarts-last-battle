@@ -9,7 +9,7 @@ import { WHAT_IFS, WhatIf } from '../modes/whatif';
 import { AREA_NAMES } from '../rendering/areas2';
 import { buildModel } from '../character/model';
 import { animateRig } from '../character/rig';
-import { lineup } from './lineup';
+import { lineup, crowdLineup } from './lineup';
 import { getLang } from './i18n';
 import type { CustomBattle, Victory } from '../game';
 import type { Area } from '../rendering/areas';
@@ -88,6 +88,7 @@ export function gallery(ctx: ScreenCtx) {
     el.querySelectorAll<HTMLElement>('[data-gc]').forEach(b => b.onclick = () => show(b.dataset.gc!)); el.querySelectorAll('[data-fac]').forEach(b => b.classList.toggle('sel', (b as HTMLElement).dataset.fac === fac)); };
   el.querySelectorAll<HTMLElement>('[data-fac]').forEach(b => b.onclick = () => { fac = b.dataset.fac as Faction; list(); const first = FULL_ROSTER.find(c => (META[c.id]?.faction ?? 'death') === fac); if (first) show(first.id); });
   (el.querySelector('#gPose') as HTMLElement).onclick = () => { pose++; };
+  { const ab = document.createElement('button'); ab.id = 'gArmy'; ab.textContent = getLang() === 'th' ? '⚔ กองทัพ' : '⚔ Army units'; (el.querySelector('#gLineup') as HTMLElement).after(ab); ab.onclick = () => crowdLineup(); }
   (el.querySelector('#gLineup') as HTMLElement).onclick = () => { lineup(FULL_ROSTER.filter(c => (META[c.id]?.faction ?? 'death') === fac).map(c => c.id), { poses: ['idle', 'cast', 'victory', 'idle', 'ult', 'walk', 'cast', 'idle', 'victory', 'idle', 'cast', 'idle', 'walk', 'idle', 'victory'] }); };
   list(); show(cur); (el.querySelector('#gBack') as HTMLElement).onclick = () => { stopGallery(); ctx.back(); };
 }
