@@ -34,3 +34,13 @@ Not verified: real GPU frame rates (headless uses SwiftShader at ~10-15 fps), re
 - Crowd: new multi-layer instanced anime models (vertex-coloured, rim light, smooth-normal inverted-hull outline) for students (house scarf/tie/trim per house, skin/hair variety, big eyes), Order (coloured coats, phoenix pin), Death Eaters (pointed hood, tattered hem, silver mask with red eyes), giants, acromantulas (striped, jointed legs, red eye cluster), dementors (tattered transparent cloak, bony hands), stone knights (shield + sword). ~5-6 draw calls per unit type regardless of count.
 - Heroes: higher-segment rounded rig primitives, layered hair strands + ahoge, signature-colour sleeve cuffs/sash/hem trim, signature rim light and ground glow.
 - Known: headless (SwiftShader) runs are slow so touch taps can apply one frame-batch late; no LOD reduction for crowd meshes beyond instancing (they are low-poly enough).
+
+## Phase 10 — tactical AUTO brain (src/ai/autobrain.ts)
+Separate from the generic AI; used for the player's hero while AUTO is on (Settings: brain on/off, aggression Defensive/Balanced/Aggressive, optional "allies use tactical brain").
+Threat map (heroes w/ LOS, NPC melee/ranged, hazards + enemy damage zones), 25-point position sampling with kiting at optimal range, cluster/path-through-crowd penalties, cover & ally cohesion, retreat-to-cover at low HP, revive downed allies when safe, story objective pursuit (reach/talk/interact/collect/protect/defeat) with stuck-detour; target priority (finishable, casting at us, boss when alone, objective), lead aiming, AoE when ≥3 clustered, energy reserve for Protego, time-to-impact dodge (perpendicular, safer side) / Protego incl. NPC bolts, melee-swarm escape dodge, heal skills, ultimate timing.
+Headless sims (AUTO Harry, 240s cap) old generic AI → new balanced:
+- Duel Normal (40): win 65% → 90%, deaths 18 → 5, hero K/D 5.1 → 39
+- Duel Hard (40): win 33% → 63%, deaths 28 → 18, K/D 2.8 → 11.4
+- Duel Easy (30): 100% → 100%, kills 75 → 97, faster wins
+- Large war (16): win 31% → 50% (aggressive 69%), deaths 8 → 2, NPC kills 298 → 389
+- Story ch1–12 (3 each, runner objectives): chapters won 44% → 100%, objectives 46% → 100%

@@ -91,6 +91,24 @@ $('#btnBack').onclick = () => show('#menu');
   const g = new Game(document.createElement('canvas'), { ...settings, difficulty: diff2 as any }, input, { playerChar: char, auto: true, mode }); let n = 0;
   while (g.state === 'playing' && n < maxSec * 30) { g.step(1 / 30); n++; } const r = { state: g.state, secs: Math.round(n / 30), phase: g.phase, score: g.war ? Math.round(g.war.score) : null, war: g.war ? { units: g.war.aliveUnits().length, controls: g.war.controls.map(c => +c.toFixed(2)), stats: g.war.stats, destroyed: g.destruction.destroyed } : null, alive: g.entities.filter(e => e.alive).map(e => e.def.id + ':' + Math.round(e.hp)).join(' ') }; g.dispose(); g.renderer.forceContextLoss(); return r; };
 
+/** Phase 10: measure the AUTO brain. brain 'old' = generic AI on the player's hero, 'new' = smart AUTO brain. */
+(window as any).__autoSim = (o: { char?: string; diff?: string; mode?: Mode; brain?: 'old' | 'new'; aggro?: string; maxSec?: number; chapter?: number }) => {
+  let extra: any = {}; let char = o.char ?? 'harry'; let mode: Mode = o.mode ?? 'duel';
+  if (o.chapter) { const c = CHAPTERS_DATA[o.chapter - 1]; char = c.player; mode = c.mode === 'war' ? 'war' : 'duel'; extra = { area: c.area, story: { allies: c.allies, start: c.start, yaw: c.yaw }, warCfg: c.war ? { ...c.war } : { hogwarts: true, death: true, missions: false, deathPower: 0.85 }, bossFight: !!c.bossFight }; }
+  const g = new Game(document.createElement('canvas'), { ...settings, difficulty: (o.diff ?? 'normal') as any, autoBrain: o.brain === 'old' ? 'classic' : 'smart', autoAggro: o.aggro ?? 'balanced', smartAllies: false } as any, input, { playerChar: char, mode, ...extra });
+  g.setAuto(true); const me = g.ctrl; let n = 0, deathT = -1; const max = (o.maxSec ?? 240) * 30;
+  while (g.state === 'playing' && n < max) { g.step(1 / 30); n++; if (deathT < 0 && !me.alive) deathT = n / 30; }
+  const r = { state: g.state, secs: Math.round(n / 30), survived: deathT < 0, survival: Math.round(deathT < 0 ? n / 30 : deathT), kills: (me as any).kills ?? 0, npcKills: (me as any).npcKills ?? 0, hp: Math.round(me.hp), warWinner: g.war ? g.war.winner : null };
+  g.dispose(); g.renderer.forceContextLoss(); return r; };
+(window as any).__storySim = (n: number, brain: 'old' | 'new', maxSec = 240, aggro = 'balanced') => new Promise(res => {
+  let g: Game | null = null; let result: boolean | null = null;
+  const make = (c: (typeof CHAPTERS_DATA)[number]) => { g = new Game(document.createElement('canvas'), { ...settings, autoBrain: brain === 'old' ? 'classic' : 'smart', autoAggro: aggro } as any, input, { playerChar: c.player, mode: c.mode === 'war' ? 'war' : 'duel', area: c.area, story: { allies: c.allies, start: c.start, yaw: c.yaw }, warCfg: c.war ? { ...c.war } : { hogwarts: true, death: true, missions: false, deathPower: 0.85 }, bossFight: !!c.bossFight } as any); return g; };
+  const r: any = new StoryRunner({ ...newCampaign() } as any, make as any, { onEnd: (won: boolean) => { result = won; } }); r.start(n); cancelAnimationFrame(r.raf);
+  const gg = g as unknown as Game; const me0 = () => gg.ctrl; let steps = 0, deathT = -1; let autoSet = false;
+  while (result === null && steps < maxSec * 30) { if (r.cine) r.cine.finish(); if (!autoSet && !gg.cinematic) { gg.setAuto(true); autoSet = true; } if (!gg.auto && !gg.cinematic) gg.setAuto(true);
+    gg.step(1 / 30); r.update(1 / 30); steps++; if (deathT < 0 && !me0().alive) deathT = steps / 30; }
+  const me = me0(); const out = { chapter: n, won: result === true, lost: result === false, obj: r.idx, objTotal: r.ch.objectives.length, survival: Math.round(deathT < 0 ? steps / 30 : deathT), died: deathT >= 0, kills: (me as any).kills ?? 0, npcKills: (me as any).npcKills ?? 0, secs: Math.round(steps / 30) };
+  r.stop(); gg.dispose(); gg.renderer.forceContextLoss(); res(out); });
 // ---------------- Story campaign ----------------
 let camp: CampaignState = newCampaign(); let runner: StoryRunner | null = null; const campReady = loadCampaign().then(c => (camp = c));
 const makeStoryGame = (c: (typeof CHAPTERS_DATA)[number]) => startGame(c.player, c.mode === 'war' ? 'war' : 'duel', { area: c.area, story: { allies: c.allies, start: c.start, yaw: c.yaw }, warCfg: c.war ? { ...c.war } : { hogwarts: true, death: true, missions: false, deathPower: 0.85 }, bossFight: !!c.bossFight });
@@ -178,6 +196,10 @@ $('#camBtn').addEventListener('click', e => { e.stopPropagation(); if (game) gam
   const sync = () => { [...sc.options].forEach(o => o.textContent = (CAM_LABEL as any)[o.value][getLang() === 'th' ? 'th' : 'en']); sc.value = settings.camMode ?? 'tps'; iy.checked = !!settings.invertY; sm.value = String(settings.camSmooth ?? 0.3); tl.value = String(settings.touchLook ?? 1); }; sync(); $('#btnSettings').addEventListener('click', sync);
   sc.onchange = () => { settings.camMode = sc.value as any; saveSettings(settings); if (game) game.setCamMode(settings.camMode); updCam(settings.camMode); };
   iy.onchange = () => { settings.invertY = iy.checked; saveSettings(settings); }; sm.oninput = () => { settings.camSmooth = +sm.value; saveSettings(settings); }; tl.oninput = () => { settings.touchLook = +tl.value; saveSettings(settings); input.touchLook = +tl.value; }; }
+{ const ag = $('#sAggro') as HTMLSelectElement, sa = $('#sSmartAuto') as HTMLInputElement, al = $('#sSmartAllies') as HTMLInputElement;
+  const sync = () => { ag.value = settings.autoAggro ?? 'balanced'; sa.checked = (settings.autoBrain ?? 'smart') === 'smart'; al.checked = !!settings.smartAllies; }; sync(); $('#btnSettings').addEventListener('click', sync);
+  const apply = () => { if (game) { game.autoAggro = settings.autoAggro; game.autoBrain = settings.autoBrain; game.smartAllies = settings.smartAllies; } saveSettings(settings); };
+  ag.onchange = () => { settings.autoAggro = ag.value as any; apply(); }; sa.onchange = () => { settings.autoBrain = sa.checked ? 'smart' : 'classic'; apply(); }; al.onchange = () => { settings.smartAllies = al.checked; apply(); }; }
 // touch layout settings (phase 8)
 new MutationObserver(() => { const want = !!settings.lefty; if (document.body.classList.contains('lefty') !== want) document.body.classList.toggle('lefty', want); }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 const applyCtl = () => { document.documentElement.style.setProperty('--bs', String(settings.btnSize ?? 1)); document.documentElement.style.setProperty('--bo', String(settings.btnOpacity ?? 0.85)); document.body.classList.toggle('lefty', !!settings.lefty); }; applyCtl();

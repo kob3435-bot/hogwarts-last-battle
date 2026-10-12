@@ -74,9 +74,10 @@ export class War {
   }
   teamCount(team: string) { let n = 0; for (const u of this.units) if (u.active && u.state === 'fight' && u.def.team === team) n++; return n; }
   // ---------- damage ----------
-  damageUnit(u: Unit, dmg: number, spellId: string, byTeam: string) {
+  curBy: Entity | null = null;
+  damageUnit(u: Unit, dmg: number, spellId: string, byTeam: string) { const credit = this.curBy && this.curBy.def.team === byTeam && !['bolt', 'melee', 'drain'].includes(spellId) && u.hp > 0 ? this.curBy : null;
     if (!u.active || u.state !== 'fight') return; u.hp -= dmgVs(u.def.type, dmg, spellId);
-    if (u.hp <= 0) { if (u.def.canDown) { u.state = 'downed'; u.downT = 25; u.hp = 0; this.stats.downed++; } else this.kill(u); if (byTeam) this.stats.kills[byTeam as 'hogwarts']++; }
+    if (u.hp <= 0) { if (u.def.canDown) { u.state = 'downed'; u.downT = 25; u.hp = 0; this.stats.downed++; } else this.kill(u); if (byTeam) this.stats.kills[byTeam as 'hogwarts']++; if (credit) (credit as any).npcKills = ((credit as any).npcKills ?? 0) + 1; }
   }
   kill(u: Unit) { u.state = 'dead'; u.deadT = 3; u.hp = 0; if (u.def.type === 'giant') { this.score = clampScore(this.score + (u.def.team === 'death' ? 3 : -3)); this.g.particles.emit(new THREE.Vector3(u.x, 2, u.z), 0xc8b8a0, 30, 6, 2, 1, -0.5, false); } }
   hitTest(prev: THREE.Vector3, pos: THREE.Vector3, rad: number, team: string): Unit | null {

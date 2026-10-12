@@ -117,11 +117,20 @@ export class StoryRunner {
     if (this.n === 12) { const h = this.g.ctrl; const maxAid = this.flags.fredSaved ? 3 : 2; if (h.alive && h.hp < h.maxHp * 0.3 && this.aidUsed < maxAid) { this.aidUsed++; h.hp = Math.min(h.maxHp, h.hp + h.maxHp * 0.45); h.barrier = 2.5; this.g.particles.emit(h.chest(), 0xffe08a, 50, 6, 1, 1);
       const helpers = [{ who: 'Hermione', en: 'Protego! We\'re with you, Harry!', th: 'โพรเทโก! พวกเราอยู่กับเธอ แฮร์รี่!' }, { who: 'McGonagall', en: 'Stand, Potter! Hogwarts stands with you!', th: 'ลุกขึ้น พอตเตอร์! ฮอกวอตส์อยู่เคียงข้างเธอ!' }, { who: 'Fred', en: 'Oi, Tom! Over here!', th: 'เฮ้ ทอม! ทางนี้!' }];
       this.bark([helpers[this.aidUsed - 1]]); } }
+    { const P = this.objPoint(); const sw = this.g.sw; sw.objective = P ? P[0] : null; (sw as any).objW = P ? P[1] : 0; }
     const r = evaluate(o, this.state());
     if (r === 'done') { if (o.flag) this.flags[o.flag] = true; if (o.kind === 'bossHp') this.flee(o.target!); sfx.ui(); this.next(); }
     else if (r === 'fail') { if (o.optional && this.state().partyAlive) { if (o.flag) this.flags[o.flag] = false; if (o.onFail) this.event(o.onFail); this.next(); } else this.fail(); }
     this.renderTracker();
   }
+  /** where AUTO should head for the current objective, with urgency weight */
+  objPoint(): [THREE.Vector3, number] | null { const o = this.obj; if (!o) return null; const V = (x: number, z: number) => new THREE.Vector3(x, 0, z); const ent = (id?: string) => id ? this.g.entities.find(e => e.def.id === id && e.alive) : undefined;
+    if (o.kind === 'reach') return [V(o.x!, o.z!), 3]; if (o.kind === 'collect') return [V(o.x!, o.z!), 3];
+    if (o.kind === 'interact') { let best: THREE.Vector3 | null = null, bd = 1e9; o.points!.forEach(([x, z], i) => { if (this.interacted.has(i)) return; const d = Math.hypot(this.g.ctrl.pos.x - x, this.g.ctrl.pos.z - z); if (d < bd) { bd = d; best = V(x, z); } }); return best ? [best, 3] : null; }
+    if (o.kind === 'talk') { const e = ent(o.target); return e ? [e.pos.clone(), 3] : null; }
+    if (o.kind === 'protect') { const e = ent(o.target); return e ? [e.pos.clone(), 1.2] : null; }
+    if (o.kind === 'defeat' || o.kind === 'bossHp') { const t = this.tagged.find(e => e.alive) ?? ent(o.target); return t ? [t.pos.clone(), 0.6] : null; }
+    return null; }
   flee(id: string) { const e = this.g.entities.find(x => x.def.id === id && x.alive); if (!e) return; if (id === 'bellatrix') this.flags.bellatrixWounded = this.objT < 120; this.g.particles.emit(e.chest(), 0x111111, 50, 6, 1, 1); e.hp = 0; e.model.root.visible = false;
     this.bark([{ who: 'Bellatrix', en: 'This isn\'t over, girl!', th: 'ยังไม่จบหรอก นังหนู!' }]); }
   next() {

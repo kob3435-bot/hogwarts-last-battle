@@ -12,6 +12,7 @@ import { ClashState, newClash, stepClash, aiPress, marker, timingQuality } from 
 import { bossPhase, PHASES, Phase } from './ai/boss';
 import { resolveCircle, pointInBoxes } from './core/collision';
 import { updateAI, AIWorld } from './ai/brain';
+import { updateSmartAI, SmartWorld, Aggro, Pt } from './ai/autobrain';
 import { sfx } from './audio/audio';
 import type { Settings } from './save/settings';
 import { War } from './war/war';
@@ -44,7 +45,7 @@ export class Game implements AIWorld {
   onDamage: (p: THREE.Vector3, amt: number, color: string, big: boolean) => void = () => {}; onBanner: (title: string, sub?: string, color?: string) => void = () => {}; onFlash: (color: string) => void = () => {};
   private raf = 0; private last = 0; stats = { cast: 0, hits: 0, kills: 0, clashesWon: 0, bestCombo: 0 }; private ray = new THREE.Raycaster();
   constructor(public canvas: HTMLCanvasElement, public settings: Settings, input: Input, public opts: GameOpts = {}) {
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: devicePixelRatio < 2, powerPreference: 'high-performance' }); this.gfx = (settings as any).gfx ?? 'high'; this.adaptive = (settings as any).adaptive ?? true; this.camMode = ((settings as any).camMode ?? 'tps') as CamMode; (this as any)._baseNoLock = input.noLock; if (this.camMode === 'top') input.noLock = true; this.assist = !!(settings as any).assist;
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: devicePixelRatio < 2, powerPreference: 'high-performance' }); this.gfx = (settings as any).gfx ?? 'high'; this.adaptive = (settings as any).adaptive ?? true; this.autoBrain = (settings as any).autoBrain ?? 'smart'; this.autoAggro = (settings as any).autoAggro ?? 'balanced'; this.smartAllies = !!(settings as any).smartAllies; this.camMode = ((settings as any).camMode ?? 'tps') as CamMode; (this as any)._baseNoLock = input.noLock; if (this.camMode === 'top') input.noLock = true; this.assist = !!(settings as any).assist;
     this.prMax = { low: 0.75, med: 1, high: Math.min(devicePixelRatio, 1.5), ultra: Math.min(devicePixelRatio, 2) }[this.gfx]; this.pr = this.prMax; this.renderer.setPixelRatio(this.pr);
     this.renderer.shadowMap.enabled = this.gfx !== 'low'; this.renderer.shadowMap.type = this.gfx === 'ultra' ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap; this.renderer.toneMapping = THREE.NoToneMapping;
     this.camera = new THREE.PerspectiveCamera(62, 1, 0.1, 900); this.world = buildArea(opts.area ?? 'courtyard'); this.particles = new Particles(this.world.scene, 900); this.destruction = new Destruction(this.world, this.particles);
@@ -109,6 +110,17 @@ export class Game implements AIWorld {
   camMode: CamMode = 'tps'; shoulder = 1; aimZoom = 0; vm: ReturnType<typeof buildViewModel> | null = null; vmFor: Entity | null = null; smX = 0; smY = 0;
   setCamMode(m: CamMode) { this.camMode = m; this.onCam(m); this.input.noLock = m === 'top' ? true : (this as any)._baseNoLock ?? false; if (m === 'top') document.exitPointerLock?.(); }
   onCam: (m: CamMode) => void = () => {};
+  /** smart AUTO brain adapter + per-entity combat stats */
+  private _sw: SmartWorld | null = null;
+  get sw(): SmartWorld { if (this._sw) return this._sw; const g = this; const W = this.war as any;
+    this._sw = { get entities() { return g.entities; }, get projectiles() { return g.projectiles as any; }, cast: (e, s, t) => g.cast(e, s as any, t), startDodge: (e, d) => g.startDodge(e, d), useSkill: (e, i, a) => g.useSkill(e, i, a),
+      get boxes() { return g.world.boxes; }, get difficulty() { return g.difficulty; }, get time() { return g.time; },
+      get hazards() { const h: Pt[] = g.hazards.map(z => ({ x: z.pos.x, z: z.pos.z, r: z.r })); for (const z of g.zones) if (z.f.dps > 0) h.push({ x: z.pos.x, z: z.pos.z, r: z.f.radius, team: z.owner.def.team } as any); return h; },
+      npcFoes: (e, r) => { const w = g.war as any; if (!w) return []; const out: Pt[] = []; for (const i of w.grid.query(e.pos.x, e.pos.z, r, [])) { const u = w.units[i]; if (u.active && u.state === 'fight' && u.def.team !== e.def.team) out.push({ x: u.x, z: u.z, melee: u.def.melee, dmg: u.def.dmg }); } return out; },
+      npcAllies: (e, r) => { const w = g.war as any; if (!w) return []; const out: Pt[] = []; for (const i of w.grid.query(e.pos.x, e.pos.z, r, [])) { const u = w.units[i]; if (u.active && u.def.team === e.def.team && u.state !== 'dead') out.push({ x: u.x, z: u.z, down: u.state === 'downed' }); } return out; },
+      bolts: e => { const w = g.war as any; if (!w) return []; const out: any[] = []; for (const b of w.bolts) if (b.active && b.team !== e.def.team && Math.abs(b.x - e.pos.x) + Math.abs(b.z - e.pos.z) < 20) out.push({ pos: new THREE.Vector3(b.x, b.y, b.z), vel: new THREE.Vector3(b.dx * 26, b.dy * 26, b.dz * 26), dmg: b.dmg }); return out; },
+      revive: (e, r) => g.war ? g.war.reviveInRadius(e.pos, r) : 0, objective: null } as SmartWorld; void W; return this._sw; }
+  autoBrain: 'smart' | 'classic' = 'smart'; autoAggro: Aggro = 'balanced'; smartAllies = false;
   auto = false; autoCancel = false; onAuto: (on: boolean) => void = () => {};
   canAuto() { return this.mode !== 'spectator' && this.mode !== 'commander' && !this.opts.auto && !!this.ctrl; }
   setAuto(on: boolean) { if (on && !this.canAuto()) return; this.auto = on; if (this.ctrl && !this.opts.auto) { this.ctrl.playerControlled = !on; if (!on) { this.ctrl.shielding = false; this.ctrl.ai.target = null as any; } } this.input.fire = false; this.input.shield = false; this.onAuto(on); }
@@ -158,7 +170,7 @@ export class Game implements AIWorld {
     const ln = e.def.look.lines; if (ln && near && (idx === 3 || Math.random() < 0.5)) this.callout(e, ln[idx === 3 ? 'ult' : 'cast']);
     return true;
   }
-  applyEffect(e: Entity, f: Effect, aim: THREE.Vector3, tgt: Entity | null, sk: Skill) {
+  applyEffect(e: Entity, f: Effect, aim: THREE.Vector3, tgt: Entity | null, sk: Skill) { if (this.war) this.war.curBy = e;
     switch (f.kind) {
       case 'volley': { const s = SPELLS[f.spell]; for (let i = 0; i < f.count; i++) { const fire = () => { if (!e.alive) return; const from = e.wandTip(); const dir = aim.clone().sub(from).normalize();
           const off = f.count > 1 ? (i / (f.count - 1) - 0.5) * f.spread : 0; dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), off);
@@ -233,7 +245,7 @@ export class Game implements AIWorld {
     else { if (near) { sfx.hit(); this.onDamage(t.chest().add(new THREE.Vector3(0, 0.9, 0)), Math.round(res.damage), mult > 1.15 ? '#ffd34d' : '#ffffff', res.damage >= 25); } this.particles.emit(t.chest(), 0xffffff, 6, 4, 0.5, 0.2); }
     if (owner?.playerControlled) { this.stats.hits++; if (bonus) this.onEvent(`COMBO! ${bonus.name}`, '#ffd34d'); if (res.damage >= 25) { this.onFlash('rgba(255,255,255,.35)'); this.shake = Math.max(this.shake, 0.25); } }
     if (res.disarm && t.playerControlled) this.onEvent('Expelliarmus!', '#f55');
-    if (!t.alive) { sfx.death(); this.onEvent(`${t.def.name} ✖`, t.def.team === this.playerTeam ? '#f66' : '#8f8'); if (owner?.playerControlled) this.stats.kills++; this.onKO(t, owner); }
+    if (!t.alive) { sfx.death(); this.onEvent(`${t.def.name} ✖`, t.def.team === this.playerTeam ? '#f66' : '#8f8'); if (owner?.playerControlled) this.stats.kills++; if (owner) (owner as any).kills = ((owner as any).kills ?? 0) + 1; this.onKO(t, owner); }
     return res;
   }
 
@@ -327,7 +339,7 @@ export class Game implements AIWorld {
         if (aFire && !e.shielding) { e.yaw = ty; if (this.cast(e, e.spell, aim)) this.input.fireTap = false; }
         if (inp.dodge) this.startDodge(e, move.lengthSq() > 0.01 ? move : camRight.clone().multiplyScalar(-1));
         if (sprint && move.lengthSq() > 0.01) this.speedFx = Math.max(this.speedFx, 0.45);
-      } else if (this.state === 'playing' && e.stunned <= 0 && e.dashT <= 0) { const r = updateAI(e, this, dt); move = r.move; sprint = r.sprint && e.stamina > 20; }
+      } else if (this.state === 'playing' && e.stunned <= 0 && e.dashT <= 0) { const smart = this.autoBrain === 'smart' && ((e === this.ctrl && (this.auto || this.opts.auto)) || (this.smartAllies && e.def.team === this.playerTeam)) && !e.scripted; const r = smart ? updateSmartAI(e, this.sw, dt, this.autoAggro) : updateAI(e, this, dt); move = r.move; sprint = r.sprint && e.stamina > 20; }
       if (e.stunned > 0) { move.set(0, 0, 0); e.shielding = false; }
       if (e.shielding) { e.energy -= dt * 6; sprint = false; move.multiplyScalar(0.4); }
       e.energy = Math.min(e.maxEnergy, e.energy + dt * (e.shielding ? 0 : 9)); if (e.energy <= 0) { e.energy = 0; e.shielding = false; }
@@ -424,7 +436,7 @@ export class Game implements AIWorld {
       for (const e of this.entities) { if (!e.alive || e.def.team === p.team || p.hitSet!.has(e.uid)) continue; const sh = e.shielding || e.barrier > 0; const rr = (sh ? 1.3 : 0.7) * (e.def.look.scale ?? 1) + p.spell.radius;
         const c = sh ? e.pos.clone().setY(1.1) : e.chest(); if (segmentHitsSphere(p.prev.toArray(), p.pos.toArray(), c.toArray(), rr)) { hit = e; break; } }
       const wall = p.pos.y <= 0.05 || pointInBoxes(p.pos.x, p.pos.y, p.pos.z, this.world.boxes);
-      if (!hit && this.war) { const u = this.war.hitTest(p.prev, p.pos, p.spell.radius, p.team); if (u) { this.war.damageUnit(u, p.spell.damage * p.power, p.spell.id, p.team); this.particles.emit(p.pos, p.spell.color, 8, 3, 0.6, 0.3); if (!p.spell.pierce) { p.alive = false; this.world.scene.remove(p.mesh); this.impact(p, null); continue; } } }
+      if (!hit && this.war) { const u = this.war.hitTest(p.prev, p.pos, p.spell.radius, p.team); if (u) { this.war.curBy = this.entities.find(x => x.uid === p.ownerId) ?? null; this.war.damageUnit(u, p.spell.damage * p.power, p.spell.id, p.team); this.particles.emit(p.pos, p.spell.color, 8, 3, 0.6, 0.3); if (!p.spell.pierce) { p.alive = false; this.world.scene.remove(p.mesh); this.impact(p, null); continue; } } }
       if (wall && p.pos.y > 0.05) this.destruction.damageAt(p.pos, p.spell.damage * p.power);
       if (hit && p.spell.pierce && !wall && p.life > 0) { p.hitSet!.add(hit.uid); this.impact(p, hit); continue; }
       if (hit || wall || p.life <= 0) { p.alive = false; this.world.scene.remove(p.mesh); this.impact(p, hit); }
@@ -443,7 +455,7 @@ export class Game implements AIWorld {
     this.particles.emit(p.pos, s.color, s.aoe > 0 ? 40 : 14, s.aoe > 0 ? 9 : 4, s.aoe > 0 ? 1.4 : 0.7, s.aoe > 0 ? 0.9 : 0.4);
     if (s.aoe > 0) { this.particles.emit(p.pos, 0xffffff, 10, 6, 1.8, 0.3); if (near) { sfx.explode(); this.shake = Math.max(this.shake, s.aoe / 12); } }
     if (direct) this.dealHit(owner, direct, s, p.power, 1, p.pos);
-    if (s.aoe > 0) { this.war?.splash(p.pos, s.aoe, s.damage * p.power * 0.8, p.team, s.id); this.destruction.damageAt(p.pos, s.damage * p.power * 1.5, s.aoe); }
+    if (s.aoe > 0) { if (this.war) this.war.curBy = this.entities.find(x => x.uid === p.ownerId) ?? null; this.war?.splash(p.pos, s.aoe, s.damage * p.power * 0.8, p.team, s.id); this.destruction.damageAt(p.pos, s.damage * p.power * 1.5, s.aoe); }
     if (s.aoe > 0) for (const e of this.entities) if (e.alive && e !== direct && e.def.team !== p.team) { const f = splashFalloff(e.pos.distanceTo(p.pos), s.aoe); if (f > 0) this.dealHit(owner, e, s, p.power, f * 0.8, p.pos); }
   }
   animate(e: Entity, dt: number, speed: number) {

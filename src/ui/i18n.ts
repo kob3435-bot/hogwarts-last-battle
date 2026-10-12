@@ -17,6 +17,7 @@ const T = {
   lose: { en: 'DEFEAT — Hogwarts has fallen', th: 'พ่ายแพ้ — ฮอกวอตส์ล่มสลาย' },
   restart: { en: 'Restart', th: 'เริ่มใหม่' }, menu: { en: 'Main menu', th: 'เมนูหลัก' },
   controls: { en: 'WASD move · Mouse aim · LMB cast · RMB Protego · Space dodge · Shift sprint · Q/E spell · 1/2/3 skills · R ultimate · Tab switch · Esc pause', th: 'WASD เดิน · เมาส์เล็ง · คลิกซ้ายร่าย · คลิกขวา Protego · Space หลบ · Shift วิ่ง · Q/E เปลี่ยนเวท · 1/2/3 สกิล · R อัลติเมท · Tab สลับตัว · Esc หยุด' },
+  aggroT: { en: 'AUTO aggression', th: 'ความดุดันของ AUTO' }, agDef: { en: 'Defensive', th: 'ตั้งรับ' }, agBal: { en: 'Balanced', th: 'สมดุล' }, agAgg: { en: 'Aggressive', th: 'บุกหนัก' }, smartAutoT: { en: 'Tactical AUTO brain (off = classic AI)', th: 'สมอง AUTO แบบยุทธวิธี (ปิด = AI แบบเดิม)' }, smartAlliesT: { en: 'Allies use tactical brain too', th: 'พันธมิตรใช้สมองยุทธวิธีด้วย' },
   camT: { en: 'Camera mode (V)', th: 'โหมดกล้อง (V)' }, invYT: { en: 'Invert Y', th: 'กลับแกน Y' }, smoothT: { en: 'Camera smoothing', th: 'ความนุ่มนวลกล้อง' }, touchLookT: { en: 'Touch look sensitivity', th: 'ความไวการปัดมอง' },
   tSwitchL: { en: 'Switch', th: 'สลับ' }, tSprintL: { en: 'Run', th: 'วิ่ง' }, tShieldL: { en: 'Shield', th: 'โล่' }, tDodgeL: { en: 'Dodge', th: 'หลบ' },
   btnSizeT: { en: 'Touch button size', th: 'ขนาดปุ่มสัมผัส' }, btnOpT: { en: 'Touch button opacity', th: 'ความทึบปุ่ม' }, leftyT: { en: 'Left-handed layout', th: 'เลย์เอาต์มือซ้าย' }, autoCancelT: { en: 'Movement/attack input cancels AUTO', th: 'ขยับ/โจมตีเองจะยกเลิก AUTO' },
